@@ -22,6 +22,7 @@ You can play a game of Scrabble here.
 - <a href="https://www.javascript.com/">JavaScript</a>
 - <a href="https://vitejs.dev/">Vite</a>
 - <a href="https://vitest.dev/">Vitest</a>
+- <a href="https://testing-library.com/docs/react-testing-library/intro/">React Testing Library</a>
 - <a href="https://vercel.com/">Vercel</a>
 - <a href="https://tailwindcss.com/">Tailwind CSS</a>
 - <a href="https://code.visualstudio.com/">Visual Studio Code</a>
@@ -40,6 +41,7 @@ When this repository is connected to Vercel, pushes to `main` are deployed autom
 - `pnpm dev` - run development app
 - `pnpm test` - run tests interactively
 - `pnpm test:all` - run all tests once
+- `pnpm test:coverage` - run all tests with code coverage
 - `pnpm typecheck` - type-check the repository
 - `pnpm lint:check` - check lint rules
 - `pnpm lint:fix` - apply lint fixes
