@@ -14,8 +14,6 @@ You can play a game of Scrabble here.
 
 - <a href="https://scrabble-app.vercel.app/">https://scrabble-app.vercel.app/</a>
 
-The board scales to fit your screen, and touch devices can use the browser's native pinch-to-zoom.
-
 ## Technologies
 
 - <a href="https://reactjs.org/">React</a>
