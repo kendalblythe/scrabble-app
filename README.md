@@ -12,7 +12,7 @@
 
 You can play a game of Scrabble here.
 
-- <a href="https://scrabble-app.vercel.app/">https://scrabble-app.vercel.app/</a>
+- <a href="https://scrabble-react-app.vercel.app/">https://scrabble-react-app.vercel.app/</a>
 
 ## Technologies
 
