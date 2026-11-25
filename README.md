@@ -35,6 +35,8 @@ The board scales to fit your screen, and touch devices can use the browser's nat
 After you clone the Git repository, you can run the following <a href="https://pnpm.io/">pnpm</a>
 commands.
 
+When this repository is connected to Vercel, pushes to `main` are deployed automatically.
+
 - `pnpm install` - install packages
 - `pnpm build` - build production app
 - `pnpm dev` - run development app
