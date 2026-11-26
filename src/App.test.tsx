@@ -36,7 +36,7 @@ describe('App', () => {
     expect(savedGame.tileBag).toHaveLength(72);
     expect(savedGame.currentPlayerIndex).toBe(0);
     expect(screen.getByRole('list', { name: 'Scores' }).children).toHaveLength(4);
-    expect(screen.getByRole('heading', { name: "Player 1's rack" })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'P1 rack' })).toBeTruthy();
     expect(screen.getByRole('table', { name: 'Scrabble game board' })).toBeTruthy();
 
     unmount();
@@ -44,7 +44,7 @@ describe('App', () => {
 
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(screen.getByRole('list', { name: 'Scores' }).children).toHaveLength(4);
-    expect(screen.getByRole('heading', { name: "Player 1's rack" })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'P1 rack' })).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'Quit game' }));
 

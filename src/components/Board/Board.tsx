@@ -34,8 +34,8 @@ function Board({ fitPlayerPanels = false }: BoardProps) {
                       bonus ? bonusClasses[bonus] : 'bg-[#e9e3ce] text-[#fff9ec]'
                     } ${
                       bonus === 'center'
-                        ? 'text-[clamp(10px,2vw,16px)]'
-                        : 'text-[clamp(6px,1.35vw,10px)]'
+                        ? 'text-[clamp(10px,_calc(var(--game-cell-size)_*_0.7),_16px)]'
+                        : 'text-[clamp(6px,_calc(var(--game-cell-size)_*_0.45),_10px)]'
                     }`}
                     key={`${row}-${column}`}
                     aria-label={`Row ${row + 1}, column ${column + 1}${

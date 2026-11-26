@@ -63,15 +63,18 @@ function App() {
     <main
       className={
         game
-          ? 'game-layout grid min-h-dvh grid-rows-[auto_auto_auto] gap-2 p-3'
+          ? 'game-layout grid min-h-dvh content-center grid-rows-[auto_auto_auto] gap-2 p-3 max-sm:content-start'
           : 'grid min-h-screen place-items-center p-3'
       }
     >
       {game ? (
         <>
-          <header className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2">
-            <h1 className="text-lg font-semibold text-[#765050]">Scrabble</h1>
-            <ol aria-label="Scores" className="flex min-w-0 justify-center gap-1">
+          <header className="game-header grid w-full max-w-[var(--game-board-size)] grid-cols-[auto_minmax(0,1fr)_auto] items-center justify-self-center gap-2 max-sm:grid-cols-[minmax(0,1fr)_auto]">
+            <h1 className="text-lg font-semibold text-[#765050] max-sm:col-span-2">Scrabble</h1>
+            <ol
+              aria-label="Scores"
+              className="flex min-w-0 justify-center gap-1 max-sm:justify-start"
+            >
               {game.players.map((player, index) => {
                 const isCurrentPlayer = index === game.currentPlayerIndex;
 
@@ -81,7 +84,7 @@ function App() {
                     aria-label={`Player ${player.id}, ${player.score} points${
                       isCurrentPlayer ? ', current player' : ''
                     }`}
-                    className={`flex min-w-0 items-center justify-center gap-1 rounded-lg border px-1.5 py-1 text-xs ${
+                    className={`flex min-w-0 items-center justify-center gap-1 rounded-lg border px-1.5 py-1 text-sm ${
                       isCurrentPlayer
                         ? 'border-[#765050] bg-[#f2eaea] font-semibold text-[#765050]'
                         : 'border-[#d9d3c4] bg-white/70 text-[#665b5b]'
@@ -95,21 +98,21 @@ function App() {
               })}
             </ol>
             <Button
-              className="cursor-pointer rounded-lg border border-[#765050] px-2 py-1 text-xs font-semibold text-[#765050] outline-none transition hover:bg-[#f2eaea] focus-visible:ring-2 focus-visible:ring-[#765050]"
+              className="cursor-pointer rounded-lg border border-[#765050] px-2 py-1 text-sm font-semibold text-[#765050] outline-none transition hover:bg-[#f2eaea] focus-visible:ring-2 focus-visible:ring-[#765050]"
               onPress={quitGame}
             >
               Quit game
             </Button>
           </header>
-          <div className="flex min-h-0 min-w-0 items-center justify-center">
+          <div className="game-board-container flex min-h-0 min-w-0 items-center justify-center">
             <Board fitPlayerPanels />
           </div>
           <section
-            aria-label={`Player ${game.players[game.currentPlayerIndex].id}'s rack`}
-            className="flex items-center justify-center gap-2"
+            aria-label={`P${game.players[game.currentPlayerIndex].id} rack`}
+            className="game-rack-panel flex items-center justify-center gap-2"
           >
-            <h2 className="text-sm font-semibold text-[#765050]">
-              Player {game.players[game.currentPlayerIndex].id}'s rack
+            <h2 className="text-base font-semibold text-[#765050]">
+              P{game.players[game.currentPlayerIndex].id} rack
             </h2>
             <ul className="flex gap-1 rounded-lg bg-[#765050] p-2">
               {game.players[game.currentPlayerIndex].rack.map((tile) => (
@@ -118,7 +121,9 @@ function App() {
                   className="game-rack-tile relative grid place-items-center rounded-md border border-[#d6c6a9] bg-[#e9e3ce] font-bold text-[#3d3024] shadow-sm"
                   key={tile.id}
                 >
-                  {tile.letter === 'blank' ? '' : tile.letter}
+                  <span className="game-rack-tile-letter">
+                    {tile.letter === 'blank' ? '' : tile.letter}
+                  </span>
                   <span className="game-rack-tile-points absolute bottom-0 right-1 leading-none">
                     {tile.points}
                   </span>
