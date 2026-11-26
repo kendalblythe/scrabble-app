@@ -115,18 +115,21 @@ body {
   }
 }
 
-.game-rack-tile {
-  width: var(--game-cell-size);
-  height: var(--game-cell-size);
+.game-tile-face {
   font-size: min(22px, calc(var(--game-cell-size) / 2));
   line-height: 1;
 }
 
-.game-rack-tile-letter {
+.game-rack-tile {
+  width: var(--game-cell-size);
+  height: var(--game-cell-size);
+}
+
+.game-tile-letter {
   line-height: 1;
   transform: translate(-2px, -4px);
 }
 
-.game-rack-tile-points {
+.game-tile-points {
   font-size: clamp(8px, calc(var(--game-cell-size) / 3), 10px);
 }

@@ -9,14 +9,19 @@ import {
   RadioGroup,
 } from 'react-aria-components';
 import Board from './components/Board/Board';
+import Rack from './components/Rack/Rack';
 import {
   createNewGame,
   GAME_STORAGE_KEY,
-  isGameState,
-  isPlayerCount,
-  PLAYER_COUNTS,
   type GameState,
+  isPlayerCount,
+  movePendingTileOnBoard,
+  normalizeGameState,
+  PLAYER_COUNTS,
   type PlayerCount,
+  placeTileOnBoard,
+  reorderRackTile,
+  returnPendingTileToRack,
 } from './game';
 
 function readCurrentGame(): GameState | null {
@@ -26,8 +31,9 @@ function readCurrentGame(): GameState | null {
   }
 
   try {
-    const game: unknown = JSON.parse(serializedGame);
-    if (isGameState(game)) {
+    const parsedGame: unknown = JSON.parse(serializedGame);
+    const game = normalizeGameState(parsedGame);
+    if (game) {
       return game;
     }
   } catch (error) {
@@ -48,6 +54,38 @@ function App() {
     const currentGame = createNewGame(playerCount);
     localStorage.setItem(GAME_STORAGE_KEY, JSON.stringify(currentGame));
     setGame(currentGame);
+  };
+
+  const handleTileDrop = (tileId: string, row: number, column: number) => {
+    if (!game) {
+      return;
+    }
+
+    const nextGame = game.pendingTileIds.includes(tileId)
+      ? movePendingTileOnBoard(game, tileId, row, column)
+      : placeTileOnBoard(game, tileId, row, column);
+    if (!nextGame) {
+      return;
+    }
+
+    localStorage.setItem(GAME_STORAGE_KEY, JSON.stringify(nextGame));
+    setGame(nextGame);
+  };
+
+  const handleRackDrop = (tileId: string, targetTileId: string | null, insertAfter: boolean) => {
+    if (!game) {
+      return;
+    }
+
+    const nextGame =
+      reorderRackTile(game, tileId, targetTileId, insertAfter) ??
+      returnPendingTileToRack(game, tileId, targetTileId, insertAfter);
+    if (!nextGame) {
+      return;
+    }
+
+    localStorage.setItem(GAME_STORAGE_KEY, JSON.stringify(nextGame));
+    setGame(nextGame);
   };
 
   const quitGame = () => {
@@ -105,32 +143,18 @@ function App() {
             </Button>
           </header>
           <div className="game-board-container flex min-h-0 min-w-0 items-center justify-center">
-            <Board fitPlayerPanels />
+            <Board
+              fitPlayerPanels
+              placedTiles={game.placedTiles}
+              pendingTileIds={game.pendingTileIds}
+              onTileDrop={handleTileDrop}
+            />
           </div>
-          <section
-            aria-label={`P${game.players[game.currentPlayerIndex].id} rack`}
-            className="game-rack-panel flex items-center justify-center gap-2"
-          >
-            <h2 className="text-base font-semibold text-[#765050]">
-              P{game.players[game.currentPlayerIndex].id} rack
-            </h2>
-            <ul className="flex gap-1 rounded-lg bg-[#765050] p-2">
-              {game.players[game.currentPlayerIndex].rack.map((tile) => (
-                <li
-                  aria-label={`${tile.letter === 'blank' ? 'Blank tile' : tile.letter}, ${tile.points} points`}
-                  className="game-rack-tile relative grid place-items-center rounded-md border border-[#d6c6a9] bg-[#e9e3ce] font-bold text-[#3d3024] shadow-sm"
-                  key={tile.id}
-                >
-                  <span className="game-rack-tile-letter">
-                    {tile.letter === 'blank' ? '' : tile.letter}
-                  </span>
-                  <span className="game-rack-tile-points absolute bottom-0 right-1 leading-none">
-                    {tile.points}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </section>
+          <Rack
+            playerId={game.players[game.currentPlayerIndex].id}
+            tiles={game.players[game.currentPlayerIndex].rack}
+            onRackDrop={handleRackDrop}
+          />
         </>
       ) : (
         <section className="setup-layout grid justify-items-center gap-3">

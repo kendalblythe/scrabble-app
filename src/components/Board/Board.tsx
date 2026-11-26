@@ -1,3 +1,6 @@
+import { useEffect, useState } from 'react';
+import type { PlacedTile } from '../../game';
+import Tile from '../Tile/Tile';
 import type { Bonus } from './board';
 import { BOARD_SIZE, BOARD_SQUARES, BONUS_LABELS } from './board';
 
@@ -12,12 +15,42 @@ const bonusClasses: Record<Bonus, string> = {
 const squareLayoutClasses =
   'grid size-full min-h-0 min-w-0 place-items-center font-bold tracking-[0.02em]';
 
-type BoardProps = { fitPlayerPanels?: boolean };
+type BoardProps = {
+  fitPlayerPanels?: boolean;
+  placedTiles?: PlacedTile[];
+  pendingTileIds?: string[];
+  onTileDrop?: (tileId: string, row: number, column: number) => void;
+};
 
-function Board({ fitPlayerPanels = false }: BoardProps) {
+function Board({
+  fitPlayerPanels = false,
+  placedTiles = [],
+  pendingTileIds = [],
+  onTileDrop,
+}: BoardProps) {
+  const [draggedTile, setDraggedTile] = useState<{
+    tile: PlacedTile['tile'];
+    x: number;
+    y: number;
+  } | null>(null);
   const sizeClass = fitPlayerPanels
     ? 'w-[var(--game-board-size)] max-h-full max-w-full'
     : 'w-[var(--game-board-size)]';
+  const tilesBySquare = new Map(
+    placedTiles.map(({ row, column, tile }) => [`${row}-${column}`, tile])
+  );
+  const pendingTileIdsSet = new Set(pendingTileIds);
+
+  useEffect(() => {
+    const clearDraggedTile = () => setDraggedTile(null);
+    window.addEventListener('drop', clearDraggedTile);
+    window.addEventListener('dragend', clearDraggedTile);
+
+    return () => {
+      window.removeEventListener('drop', clearDraggedTile);
+      window.removeEventListener('dragend', clearDraggedTile);
+    };
+  }, []);
 
   return (
     <div
@@ -28,30 +61,105 @@ function Board({ fitPlayerPanels = false }: BoardProps) {
           {BOARD_SQUARES.filter(({ column }) => column === 0).map(({ row }) => (
             <tr className="grid min-h-0 grid-cols-[repeat(15,minmax(0,1fr))] gap-px" key={row}>
               {BOARD_SQUARES.slice(row * BOARD_SIZE, (row + 1) * BOARD_SIZE).map(
-                ({ row, column, bonus }) => (
-                  <td
-                    className={`${squareLayoutClasses} ${
-                      bonus ? bonusClasses[bonus] : 'bg-[#e9e3ce] text-[#fff9ec]'
-                    } ${
-                      bonus === 'center'
-                        ? 'text-[clamp(10px,_calc(var(--game-cell-size)_*_0.7),_16px)]'
-                        : 'text-[clamp(6px,_calc(var(--game-cell-size)_*_0.45),_10px)]'
-                    }`}
-                    key={`${row}-${column}`}
-                    aria-label={`Row ${row + 1}, column ${column + 1}${
-                      bonus
-                        ? `, ${bonus.replace('-', ' ')}${bonus === 'center' ? ' start' : ''}`
-                        : ''
-                    }`}
-                  >
-                    {bonus && <span>{BONUS_LABELS[bonus]}</span>}
-                  </td>
-                )
+                ({ row, column, bonus }) => {
+                  const tile = tilesBySquare.get(`${row}-${column}`);
+                  const isDraggedTile = tile !== undefined && draggedTile?.tile.id === tile.id;
+                  const showTile = tile !== undefined && !isDraggedTile;
+                  const showBonus = !showTile && bonus !== undefined;
+                  const squareClasses = showTile
+                    ? 'bg-[#e9e3ce] text-[#3d3024]'
+                    : bonus
+                      ? bonusClasses[bonus]
+                      : 'bg-[#e9e3ce] text-[#fff9ec]';
+                  const bonusTextSizeClass =
+                    showBonus && bonus === 'center'
+                      ? 'text-[clamp(10px,_calc(var(--game-cell-size)_*_0.7),_16px)]'
+                      : showBonus
+                        ? 'text-[clamp(6px,_calc(var(--game-cell-size)_*_0.45),_10px)]'
+                        : '';
+                  const canDrop = onTileDrop !== undefined && tile === undefined;
+                  const canMoveTile = tile !== undefined && pendingTileIdsSet.has(tile.id);
+                  const tileName =
+                    tile?.letter === 'blank' ? 'Blank tile' : tile ? `${tile.letter} tile` : '';
+                  const tilePoints = tile
+                    ? `${tile.points} point${tile.points === 1 ? '' : 's'}`
+                    : '';
+
+                  return (
+                    <td
+                      className={`${squareLayoutClasses} ${squareClasses} ${bonusTextSizeClass}`}
+                      key={`${row}-${column}`}
+                      draggable={canMoveTile}
+                      aria-label={`Row ${row + 1}, column ${column + 1}${
+                        bonus && !tile
+                          ? `, ${bonus.replace('-', ' ')}${bonus === 'center' ? ' start' : ''}`
+                          : ''
+                      }${tile ? `, ${tileName}, ${tilePoints}, occupied` : ''}`}
+                      onDragStart={(event) => {
+                        if (!canMoveTile || !tile) {
+                          return;
+                        }
+
+                        event.dataTransfer.setData('text/plain', tile.id);
+                        event.dataTransfer.effectAllowed = 'move';
+                        const transparentImage = document.createElement('canvas');
+                        transparentImage.width = 1;
+                        transparentImage.height = 1;
+                        event.dataTransfer.setDragImage(transparentImage, 0, 0);
+                        setDraggedTile({ tile, x: event.clientX, y: event.clientY });
+                      }}
+                      onDrag={(event) => {
+                        if (canMoveTile && tile) {
+                          setDraggedTile({ tile, x: event.clientX, y: event.clientY });
+                        }
+                      }}
+                      onDragEnd={() => setDraggedTile(null)}
+                      onDragOver={(event) => {
+                        if (canDrop) {
+                          event.preventDefault();
+                        }
+                      }}
+                      onDrop={(event) => {
+                        if (!canDrop || !onTileDrop) {
+                          return;
+                        }
+
+                        event.preventDefault();
+                        const tileId = event.dataTransfer.getData('text/plain');
+                        if (tileId) {
+                          onTileDrop(tileId, row, column);
+                        }
+                      }}
+                    >
+                      {showTile ? (
+                        <Tile tile={tile} variant="board" />
+                      ) : (
+                        showBonus && <span>{BONUS_LABELS[bonus]}</span>
+                      )}
+                    </td>
+                  );
+                }
               )}
             </tr>
           ))}
         </tbody>
       </table>
+      {draggedTile && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed z-50 grid place-items-center"
+          data-board-drag-preview
+          style={{
+            left: draggedTile.x,
+            top: draggedTile.y,
+            width: 'var(--game-cell-size)',
+            height: 'var(--game-cell-size)',
+            transform: 'translate(-50%, -50%)',
+          }}
+        >
+          <Tile tile={draggedTile.tile} variant="board" />
+        </div>
+      )}
     </div>
   );
 }

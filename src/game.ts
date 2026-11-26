@@ -47,10 +47,18 @@ export type Player = {
   rack: Tile[];
 };
 
+export type PlacedTile = {
+  row: number;
+  column: number;
+  tile: Tile;
+};
+
 export type GameState = {
   players: Player[];
   currentPlayerIndex: number;
   tileBag: Tile[];
+  placedTiles: PlacedTile[];
+  pendingTileIds: string[];
 };
 
 const TOTAL_TILE_COUNT = TILE_DISTRIBUTION.reduce((total, tile) => total + tile.count, 0);
@@ -98,6 +106,25 @@ function isPlayer(value: unknown): value is Player {
   return value.rack.every(isTile);
 }
 
+function isPlacedTile(value: unknown): value is PlacedTile {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'row' in value &&
+    'column' in value &&
+    'tile' in value &&
+    typeof value.row === 'number' &&
+    Number.isInteger(value.row) &&
+    value.row >= 0 &&
+    value.row < 15 &&
+    typeof value.column === 'number' &&
+    Number.isInteger(value.column) &&
+    value.column >= 0 &&
+    value.column < 15 &&
+    isTile(value.tile)
+  );
+}
+
 export function isGameState(value: unknown): value is GameState {
   if (
     typeof value !== 'object' ||
@@ -114,7 +141,28 @@ export function isGameState(value: unknown): value is GameState {
     value.currentPlayerIndex < 0 ||
     value.currentPlayerIndex >= value.players.length ||
     !Array.isArray(value.tileBag) ||
-    !value.tileBag.every(isTile)
+    !value.tileBag.every(isTile) ||
+    !('placedTiles' in value) ||
+    !Array.isArray(value.placedTiles) ||
+    !value.placedTiles.every(isPlacedTile) ||
+    !('pendingTileIds' in value) ||
+    !Array.isArray(value.pendingTileIds) ||
+    !value.pendingTileIds.every((tileId) => typeof tileId === 'string')
+  ) {
+    return false;
+  }
+
+  const placedSquareCount = new Set(value.placedTiles.map(({ row, column }) => `${row}-${column}`))
+    .size;
+  if (placedSquareCount !== value.placedTiles.length) {
+    return false;
+  }
+
+  const pendingTileIds = new Set(value.pendingTileIds);
+  const placedTileIds = new Set(value.placedTiles.map(({ tile }) => tile.id));
+  if (
+    pendingTileIds.size !== value.pendingTileIds.length ||
+    !value.pendingTileIds.every((tileId) => placedTileIds.has(tileId))
   ) {
     return false;
   }
@@ -123,8 +171,53 @@ export function isGameState(value: unknown): value is GameState {
     (total, player) => total + (isPlayer(player) ? player.rack.length : 0),
     0
   );
+  const tileIds = [
+    ...value.players.flatMap((player) => (isPlayer(player) ? player.rack.map(({ id }) => id) : [])),
+    ...value.tileBag.flatMap((tile) => (isTile(tile) ? [tile.id] : [])),
+    ...value.placedTiles.flatMap((placedTile) =>
+      isPlacedTile(placedTile) ? [placedTile.tile.id] : []
+    ),
+  ];
 
-  return value.tileBag.length + rackTileCount === TOTAL_TILE_COUNT;
+  return (
+    value.tileBag.length + rackTileCount + value.placedTiles.length === TOTAL_TILE_COUNT &&
+    new Set(tileIds).size === TOTAL_TILE_COUNT
+  );
+}
+
+function getPlacedTileIds(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.flatMap((placedTile) => {
+    if (
+      typeof placedTile !== 'object' ||
+      placedTile === null ||
+      !('tile' in placedTile) ||
+      typeof placedTile.tile !== 'object' ||
+      placedTile.tile === null ||
+      !('id' in placedTile.tile) ||
+      typeof placedTile.tile.id !== 'string'
+    ) {
+      return [];
+    }
+
+    return [placedTile.tile.id];
+  });
+}
+
+export function normalizeGameState(value: unknown): GameState | null {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return null;
+  }
+
+  const placedTiles = 'placedTiles' in value ? value.placedTiles : [];
+  const pendingTileIds =
+    'pendingTileIds' in value ? value.pendingTileIds : getPlacedTileIds(placedTiles);
+  const game = { ...value, placedTiles, pendingTileIds };
+
+  return isGameState(game) ? game : null;
 }
 
 function shuffleTiles(tiles: Tile[]): Tile[] {
@@ -152,5 +245,144 @@ export function createNewGame(playerCount: PlayerCount): GameState {
     rack: tileBag.splice(0, RACK_SIZE),
   }));
 
-  return { players, currentPlayerIndex: 0, tileBag };
+  return { players, currentPlayerIndex: 0, tileBag, placedTiles: [], pendingTileIds: [] };
+}
+
+export function placeTileOnBoard(
+  game: GameState,
+  tileId: string,
+  row: number,
+  column: number
+): GameState | null {
+  if (
+    !Number.isInteger(row) ||
+    row < 0 ||
+    row >= 15 ||
+    !Number.isInteger(column) ||
+    column < 0 ||
+    column >= 15 ||
+    game.placedTiles.some((placedTile) => placedTile.row === row && placedTile.column === column)
+  ) {
+    return null;
+  }
+
+  const currentPlayer = game.players[game.currentPlayerIndex];
+  const rackIndex = currentPlayer.rack.findIndex((rackTile) => rackTile.id === tileId);
+  if (rackIndex < 0) {
+    return null;
+  }
+  const tile = currentPlayer.rack[rackIndex];
+
+  return {
+    ...game,
+    players: game.players.map((player, index) =>
+      index === game.currentPlayerIndex
+        ? { ...player, rack: player.rack.filter((rackTile) => rackTile.id !== tileId) }
+        : player
+    ),
+    placedTiles: [...game.placedTiles, { row, column, tile }],
+    pendingTileIds: [...game.pendingTileIds, tileId],
+  };
+}
+
+export function movePendingTileOnBoard(
+  game: GameState,
+  tileId: string,
+  row: number,
+  column: number
+): GameState | null {
+  const placedTile = game.placedTiles.find(({ tile }) => tile.id === tileId);
+  if (
+    !placedTile ||
+    !game.pendingTileIds.includes(tileId) ||
+    !Number.isInteger(row) ||
+    row < 0 ||
+    row >= 15 ||
+    !Number.isInteger(column) ||
+    column < 0 ||
+    column >= 15 ||
+    (placedTile.row === row && placedTile.column === column) ||
+    game.placedTiles.some((otherTile) => otherTile.row === row && otherTile.column === column)
+  ) {
+    return null;
+  }
+
+  return {
+    ...game,
+    placedTiles: game.placedTiles.map((currentTile) =>
+      currentTile.tile.id === tileId ? { ...currentTile, row, column } : currentTile
+    ),
+  };
+}
+
+export function returnPendingTileToRack(
+  game: GameState,
+  tileId: string,
+  targetTileId: string | null,
+  insertAfter: boolean
+): GameState | null {
+  const placedTile = game.placedTiles.find(({ tile }) => tile.id === tileId);
+  if (!placedTile || !game.pendingTileIds.includes(tileId)) {
+    return null;
+  }
+
+  const rack = game.players[game.currentPlayerIndex].rack;
+  if (rack.length >= RACK_SIZE) {
+    return null;
+  }
+
+  const targetIndex =
+    targetTileId === null ? rack.length : rack.findIndex((tile) => tile.id === targetTileId);
+  if (targetIndex < 0) {
+    return null;
+  }
+
+  const insertionIndex = targetIndex + (targetTileId !== null && insertAfter ? 1 : 0);
+  const nextRack = [...rack];
+  nextRack.splice(insertionIndex, 0, placedTile.tile);
+
+  return {
+    ...game,
+    players: game.players.map((player, index) =>
+      index === game.currentPlayerIndex ? { ...player, rack: nextRack } : player
+    ),
+    placedTiles: game.placedTiles.filter((tile) => tile.tile.id !== tileId),
+    pendingTileIds: game.pendingTileIds.filter((pendingTileId) => pendingTileId !== tileId),
+  };
+}
+
+export function reorderRackTile(
+  game: GameState,
+  tileId: string,
+  targetTileId: string | null,
+  insertAfter: boolean
+): GameState | null {
+  const rack = game.players[game.currentPlayerIndex].rack;
+  const draggedTile = rack.find((tile) => tile.id === tileId);
+  if (!draggedTile) {
+    return null;
+  }
+
+  const remainingTiles = rack.filter((tile) => tile.id !== tileId);
+  const targetIndex =
+    targetTileId === null
+      ? remainingTiles.length
+      : remainingTiles.findIndex((tile) => tile.id === targetTileId);
+  if (targetIndex < 0) {
+    return null;
+  }
+
+  const insertionIndex = targetIndex + (targetTileId !== null && insertAfter ? 1 : 0);
+  const nextRack = [...remainingTiles];
+  nextRack.splice(insertionIndex, 0, draggedTile);
+  if (nextRack.every((tile, index) => tile.id === rack[index]?.id)) {
+    return null;
+  }
+
+  return {
+    ...game,
+    players: game.players.map((player, index) =>
+      index === game.currentPlayerIndex ? { ...player, rack: nextRack } : player
+    ),
+  };
 }
