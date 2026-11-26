@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Button } from 'react-aria-components';
 import { RACK_SIZE, type Tile as TileData } from '../../game';
 import Tile from '../Tile/Tile';
 
@@ -6,14 +7,28 @@ type RackProps = {
   playerId: number;
   tiles: TileData[];
   onRackDrop: (tileId: string, targetTileId: string | null, insertAfter: boolean) => void;
+  turnScore?: number | null;
+  onSubmitTurn?: () => void;
+  hasPendingTiles?: boolean;
+  onReturnTiles?: () => void;
 };
 
-function Rack({ playerId, tiles, onRackDrop }: RackProps) {
+function Rack({
+  playerId,
+  tiles,
+  onRackDrop,
+  turnScore,
+  onSubmitTurn,
+  hasPendingTiles,
+  onReturnTiles,
+}: RackProps) {
   const [draggedTile, setDraggedTile] = useState<{
     tile: TileData;
     x: number;
     y: number;
   } | null>(null);
+  const scorePreview = turnScore ?? null;
+  const hasValidPlay = scorePreview !== null;
 
   useEffect(() => {
     const clearDraggedTile = () => setDraggedTile(null);
@@ -30,7 +45,7 @@ function Rack({ playerId, tiles, onRackDrop }: RackProps) {
     <>
       <section
         aria-label={`P${playerId} rack`}
-        className="game-rack-panel flex items-center justify-center gap-2"
+        className="game-rack-panel flex flex-wrap items-center gap-2 max-sm:grid max-sm:grid-cols-[max-content_max-content] max-sm:justify-start sm:justify-center"
       >
         <h2 className="text-base font-semibold text-[#765050]">P{playerId} rack</h2>
         <ul
@@ -82,6 +97,34 @@ function Rack({ playerId, tiles, onRackDrop }: RackProps) {
             </li>
           ))}
         </ul>
+        {(onSubmitTurn || onReturnTiles) && (
+          <div className="flex items-center gap-2 max-sm:col-start-2">
+            {onSubmitTurn && (
+              <Button
+                aria-label={
+                  hasValidPlay
+                    ? `Play word for ${scorePreview} points and end turn`
+                    : 'Play word, valid play required'
+                }
+                className="shrink-0 rounded-lg bg-green-700 px-2 py-2 text-sm font-semibold text-white outline-none transition hover:bg-green-800 focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:border disabled:border-[#765050] disabled:bg-transparent disabled:text-[#765050] disabled:opacity-50 disabled:hover:bg-transparent"
+                isDisabled={!hasValidPlay}
+                onPress={onSubmitTurn}
+              >
+                {hasValidPlay ? `Play (+${scorePreview})` : 'Play'}
+              </Button>
+            )}
+            {onReturnTiles && (
+              <Button
+                aria-label="Return all placed tiles to rack"
+                className="shrink-0 rounded-lg border border-[#765050] px-2 py-2 text-sm font-semibold text-[#765050] outline-none transition hover:bg-[#f2eaea] focus-visible:ring-2 focus-visible:ring-[#765050] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
+                isDisabled={!hasPendingTiles}
+                onPress={onReturnTiles}
+              >
+                Return tiles
+              </Button>
+            )}
+          </div>
+        )}
       </section>
       {draggedTile && (
         <div

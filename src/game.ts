@@ -34,6 +34,10 @@ export const TILE_DISTRIBUTION = [
 
 export type PlayerCount = (typeof PLAYER_COUNTS)[number];
 export type TileLetter = (typeof TILE_DISTRIBUTION)[number]['letter'];
+export type BoardLetter = Exclude<TileLetter, 'blank'>;
+export const BOARD_LETTERS = TILE_DISTRIBUTION.map(({ letter }) => letter).filter(
+  (letter): letter is BoardLetter => letter !== 'blank'
+);
 
 export type Tile = {
   id: string;
@@ -51,6 +55,7 @@ export type PlacedTile = {
   row: number;
   column: number;
   tile: Tile;
+  assignedLetter?: BoardLetter;
 };
 
 export type GameState = {
@@ -106,8 +111,12 @@ function isPlayer(value: unknown): value is Player {
   return value.rack.every(isTile);
 }
 
+function isBoardLetter(value: unknown): value is BoardLetter {
+  return BOARD_LETTERS.some((letter) => letter === value);
+}
+
 function isPlacedTile(value: unknown): value is PlacedTile {
-  return (
+  if (
     typeof value === 'object' &&
     value !== null &&
     'row' in value &&
@@ -122,7 +131,15 @@ function isPlacedTile(value: unknown): value is PlacedTile {
     value.column >= 0 &&
     value.column < 15 &&
     isTile(value.tile)
-  );
+  ) {
+    if (!('assignedLetter' in value) || value.assignedLetter === undefined) {
+      return true;
+    }
+
+    return value.tile.letter === 'blank' && isBoardLetter(value.assignedLetter);
+  }
+
+  return false;
 }
 
 export function isGameState(value: unknown): value is GameState {
@@ -285,6 +302,33 @@ export function placeTileOnBoard(
   };
 }
 
+export function assignBlankTile(
+  game: GameState,
+  tileId: string,
+  letter: BoardLetter
+): GameState | null {
+  const placedTile = game.placedTiles.find(({ tile }) => tile.id === tileId);
+  if (!placedTile) {
+    return null;
+  }
+
+  if (
+    placedTile.tile.letter !== 'blank' ||
+    placedTile.assignedLetter !== undefined ||
+    !game.pendingTileIds.includes(tileId) ||
+    !isBoardLetter(letter)
+  ) {
+    return null;
+  }
+
+  return {
+    ...game,
+    placedTiles: game.placedTiles.map((currentTile) =>
+      currentTile.tile.id === tileId ? { ...currentTile, assignedLetter: letter } : currentTile
+    ),
+  };
+}
+
 export function movePendingTileOnBoard(
   game: GameState,
   tileId: string,
@@ -349,6 +393,24 @@ export function returnPendingTileToRack(
     placedTiles: game.placedTiles.filter((tile) => tile.tile.id !== tileId),
     pendingTileIds: game.pendingTileIds.filter((pendingTileId) => pendingTileId !== tileId),
   };
+}
+
+export function returnAllPendingTilesToRack(game: GameState): GameState | null {
+  if (game.pendingTileIds.length === 0) {
+    return null;
+  }
+
+  let nextGame = game;
+  for (const tileId of game.pendingTileIds) {
+    const returnedGame = returnPendingTileToRack(nextGame, tileId, null, false);
+    if (!returnedGame) {
+      return null;
+    }
+
+    nextGame = returnedGame;
+  }
+
+  return nextGame;
 }
 
 export function reorderRackTile(

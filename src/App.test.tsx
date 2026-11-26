@@ -2,12 +2,149 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import App from './App';
-import { createNewGame, GAME_STORAGE_KEY, isGameState, TILE_DISTRIBUTION } from './game';
+import {
+  createNewGame,
+  GAME_STORAGE_KEY,
+  isGameState,
+  TILE_DISTRIBUTION,
+  type GameState,
+  type TileLetter,
+} from './game';
 
 afterEach(cleanup);
 beforeEach(() => localStorage.clear());
 
+function gameWithRackLetters(letters: TileLetter[]): GameState {
+  const game = createNewGame(2);
+  const availableTiles = [...game.players.flatMap(({ rack }) => rack), ...game.tileBag];
+  const rackTiles = letters.map((letter) => {
+    const tileIndex = availableTiles.findIndex((tile) => tile.letter === letter);
+    if (tileIndex < 0) {
+      throw new Error(`No ${letter} tile is available for the test game.`);
+    }
+
+    return availableTiles.splice(tileIndex, 1)[0];
+  });
+  const currentRack = [...rackTiles, ...availableTiles.splice(0, 7 - rackTiles.length)];
+  const nextRack = availableTiles.splice(0, 7);
+
+  return {
+    ...game,
+    players: [
+      { ...game.players[0], rack: currentRack },
+      { ...game.players[1], rack: nextRack },
+    ],
+    tileBag: availableTiles,
+  };
+}
+
 describe('App', () => {
+  it('enables valid plays and ends the turn with the correct score', () => {
+    localStorage.setItem(GAME_STORAGE_KEY, JSON.stringify(gameWithRackLetters(['C', 'A', 'T'])));
+    render(<App />);
+
+    const rack = within(screen.getByRole('region', { name: 'P1 rack' })).getByRole('list');
+    let draggedTileId = '';
+    const dataTransfer = {
+      effectAllowed: 'none',
+      getData: () => draggedTileId,
+      setData: (_format: string, value: string) => {
+        draggedTileId = value;
+      },
+      setDragImage: () => {},
+    };
+    const placeRackTile = (letter: string, row: number, column: number) => {
+      const tile = within(rack).getAllByRole('listitem', {
+        name: `${letter}, ${letter === 'C' ? 3 : 1} points`,
+      })[0];
+      if (!tile) {
+        throw new Error(`The test rack does not contain a ${letter} tile.`);
+      }
+
+      fireEvent.dragStart(tile, { dataTransfer });
+      fireEvent.drop(
+        screen.getByRole('cell', { name: new RegExp(`^Row ${row}, column ${column}`) }),
+        { dataTransfer }
+      );
+    };
+
+    placeRackTile('C', 8, 7);
+    expect(
+      screen
+        .getByRole('button', { name: 'Play word, valid play required' })
+        .hasAttribute('disabled')
+    ).toBe(true);
+    placeRackTile('A', 8, 8);
+    placeRackTile('T', 8, 9);
+
+    const playButton = screen.getByRole('button', {
+      name: 'Play word for 10 points and end turn',
+    });
+    expect(playButton.hasAttribute('disabled')).toBe(false);
+    expect(playButton.textContent).toBe('Play (+10)');
+    fireEvent.click(playButton);
+
+    expect(screen.getByRole('heading', { name: 'P2 rack' })).toBeTruthy();
+    expect(screen.getByRole('listitem', { name: 'Player 1, 10 points' })).toBeTruthy();
+    expect(
+      screen.getByRole('listitem', { name: 'Player 2, 0 points, current player' })
+    ).toBeTruthy();
+    expect(
+      screen
+        .getByRole('button', { name: 'Play word, valid play required' })
+        .hasAttribute('disabled')
+    ).toBe(true);
+
+    const savedGame: unknown = JSON.parse(localStorage.getItem(GAME_STORAGE_KEY) ?? 'null');
+    expect(isGameState(savedGame)).toBe(true);
+    if (!isGameState(savedGame)) {
+      throw new Error('Expected the submitted game to be valid.');
+    }
+    expect(savedGame.pendingTileIds).toEqual([]);
+    expect(savedGame.currentPlayerIndex).toBe(1);
+  });
+
+  it('requires a letter choice for a blank tile before validating the word', () => {
+    localStorage.setItem(GAME_STORAGE_KEY, JSON.stringify(gameWithRackLetters(['blank', 'T'])));
+    render(<App />);
+
+    const rack = within(screen.getByRole('region', { name: 'P1 rack' })).getByRole('list');
+    let draggedTileId = '';
+    const dataTransfer = {
+      effectAllowed: 'none',
+      getData: () => draggedTileId,
+      setData: (_format: string, value: string) => {
+        draggedTileId = value;
+      },
+      setDragImage: () => {},
+    };
+    const blankTile = within(rack).getByRole('listitem', { name: 'Blank tile, 0 points' });
+    fireEvent.dragStart(blankTile, { dataTransfer });
+    fireEvent.drop(screen.getByRole('cell', { name: 'Row 8, column 8, center start' }), {
+      dataTransfer,
+    });
+
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Use blank as A' }));
+    expect(screen.getByRole('cell', { name: /Blank tile assigned as A/ }).textContent).toContain(
+      'A'
+    );
+
+    const tTile = within(rack).getAllByRole('listitem', { name: 'T, 1 points' })[0];
+    if (!tTile) {
+      throw new Error('The test rack does not contain a T tile.');
+    }
+
+    fireEvent.dragStart(tTile, { dataTransfer });
+    fireEvent.drop(screen.getByRole('cell', { name: 'Row 8, column 9' }), { dataTransfer });
+
+    const playButton = screen.getByRole('button', {
+      name: 'Play word for 2 points and end turn',
+    });
+    expect(playButton.hasAttribute('disabled')).toBe(false);
+    expect(playButton.textContent).toBe('Play (+2)');
+  });
+
   it('moves rack tiles onto empty board cells and keeps occupied cells unchanged', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: 'Start game' }));
@@ -94,6 +231,81 @@ describe('App', () => {
 
     expect(savedGame.pendingTileIds).toEqual([]);
     expect(savedGame.placedTiles).toEqual([]);
+  });
+
+  it('returns all current-turn tiles to the rack without moving fixed tiles', () => {
+    const game = gameWithRackLetters(['A', 'T']);
+    const fixedTileIndex = game.tileBag.findIndex(({ letter }) => letter === 'C');
+    const fixedTile = game.tileBag[fixedTileIndex];
+    if (!fixedTile) {
+      throw new Error('The test game does not contain a fixed C tile.');
+    }
+    const initialRackTileIds = game.players[0].rack.map(({ id }) => id);
+    const gameWithFixedTile: GameState = {
+      ...game,
+      tileBag: game.tileBag.filter(({ id }) => id !== fixedTile.id),
+      placedTiles: [{ row: 7, column: 7, tile: fixedTile }],
+    };
+    localStorage.setItem(GAME_STORAGE_KEY, JSON.stringify(gameWithFixedTile));
+    render(<App />);
+
+    const rack = within(screen.getByRole('region', { name: 'P1 rack' })).getByRole('list');
+    let draggedTileId = '';
+    const dataTransfer = {
+      effectAllowed: 'none',
+      getData: () => draggedTileId,
+      setData: (_format: string, value: string) => {
+        draggedTileId = value;
+      },
+      setDragImage: () => {},
+    };
+    const placeRackTile = (letter: string, column: number) => {
+      const tile = within(rack).getAllByRole('listitem', {
+        name: `${letter}, 1 points`,
+      })[0];
+      if (!tile) {
+        throw new Error(`The test rack does not contain a ${letter} tile.`);
+      }
+
+      fireEvent.dragStart(tile, { dataTransfer });
+      fireEvent.drop(screen.getByRole('cell', { name: `Row 8, column ${column}` }), {
+        dataTransfer,
+      });
+    };
+
+    const returnButton = screen.getByRole('button', { name: 'Return all placed tiles to rack' });
+    expect(returnButton.hasAttribute('disabled')).toBe(true);
+
+    placeRackTile('A', 9);
+    placeRackTile('T', 10);
+
+    expect(returnButton.hasAttribute('disabled')).toBe(false);
+    expect(
+      screen
+        .getByRole('button', { name: 'Play word for 5 points and end turn' })
+        .hasAttribute('disabled')
+    ).toBe(false);
+    fireEvent.click(returnButton);
+
+    expect(within(rack).getAllByRole('listitem')).toHaveLength(7);
+    expect(screen.getByRole('cell', { name: /^Row 8, column 8, C tile/ })).toBeTruthy();
+    expect(screen.getByRole('cell', { name: 'Row 8, column 9' })).toBeTruthy();
+    expect(screen.getByRole('cell', { name: 'Row 8, column 10' })).toBeTruthy();
+    expect(returnButton.hasAttribute('disabled')).toBe(true);
+    expect(
+      screen
+        .getByRole('button', { name: 'Play word, valid play required' })
+        .hasAttribute('disabled')
+    ).toBe(true);
+
+    const savedGame: unknown = JSON.parse(localStorage.getItem(GAME_STORAGE_KEY) ?? 'null');
+    expect(isGameState(savedGame)).toBe(true);
+    if (!isGameState(savedGame)) {
+      throw new Error('Expected the returned game to be valid.');
+    }
+    expect(savedGame.placedTiles).toEqual([{ row: 7, column: 7, tile: fixedTile }]);
+    expect(savedGame.pendingTileIds).toEqual([]);
+    expect(savedGame.players[0].rack.map(({ id }) => id).sort()).toEqual(initialRackTileIds.sort());
   });
 
   it('reorders rack tiles and persists their new order', () => {

@@ -74,6 +74,7 @@ body {
     align-self: center;
     justify-self: start;
     flex-direction: column;
+    flex-wrap: nowrap;
     align-items: flex-start;
     gap: 4px;
   }

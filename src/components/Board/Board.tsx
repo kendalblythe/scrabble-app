@@ -29,15 +29,15 @@ function Board({
   onTileDrop,
 }: BoardProps) {
   const [draggedTile, setDraggedTile] = useState<{
-    tile: PlacedTile['tile'];
+    placement: PlacedTile;
     x: number;
     y: number;
   } | null>(null);
   const sizeClass = fitPlayerPanels
     ? 'w-[var(--game-board-size)] max-h-full max-w-full'
     : 'w-[var(--game-board-size)]';
-  const tilesBySquare = new Map(
-    placedTiles.map(({ row, column, tile }) => [`${row}-${column}`, tile])
+  const placementsBySquare = new Map(
+    placedTiles.map((placement) => [`${placement.row}-${placement.column}`, placement])
   );
   const pendingTileIdsSet = new Set(pendingTileIds);
 
@@ -62,9 +62,11 @@ function Board({
             <tr className="grid min-h-0 grid-cols-[repeat(15,minmax(0,1fr))] gap-px" key={row}>
               {BOARD_SQUARES.slice(row * BOARD_SIZE, (row + 1) * BOARD_SIZE).map(
                 ({ row, column, bonus }) => {
-                  const tile = tilesBySquare.get(`${row}-${column}`);
-                  const isDraggedTile = tile !== undefined && draggedTile?.tile.id === tile.id;
-                  const showTile = tile !== undefined && !isDraggedTile;
+                  const placement = placementsBySquare.get(`${row}-${column}`);
+                  const tile = placement?.tile;
+                  const isDraggedTile =
+                    placement !== undefined && draggedTile?.placement.tile.id === placement.tile.id;
+                  const showTile = placement !== undefined && !isDraggedTile;
                   const showBonus = !showTile && bonus !== undefined;
                   const squareClasses = showTile
                     ? 'bg-[#e9e3ce] text-[#3d3024]'
@@ -78,9 +80,16 @@ function Board({
                         ? 'text-[clamp(6px,_calc(var(--game-cell-size)_*_0.45),_10px)]'
                         : '';
                   const canDrop = onTileDrop !== undefined && tile === undefined;
-                  const canMoveTile = tile !== undefined && pendingTileIdsSet.has(tile.id);
+                  const canMoveTile =
+                    placement !== undefined && pendingTileIdsSet.has(placement.tile.id);
                   const tileName =
-                    tile?.letter === 'blank' ? 'Blank tile' : tile ? `${tile.letter} tile` : '';
+                    tile?.letter === 'blank'
+                      ? placement?.assignedLetter
+                        ? `Blank tile assigned as ${placement.assignedLetter}`
+                        : 'Blank tile'
+                      : tile
+                        ? `${tile.letter} tile`
+                        : '';
                   const tilePoints = tile
                     ? `${tile.points} point${tile.points === 1 ? '' : 's'}`
                     : '';
@@ -96,21 +105,21 @@ function Board({
                           : ''
                       }${tile ? `, ${tileName}, ${tilePoints}, occupied` : ''}`}
                       onDragStart={(event) => {
-                        if (!canMoveTile || !tile) {
+                        if (!canMoveTile || !placement) {
                           return;
                         }
 
-                        event.dataTransfer.setData('text/plain', tile.id);
+                        event.dataTransfer.setData('text/plain', placement.tile.id);
                         event.dataTransfer.effectAllowed = 'move';
                         const transparentImage = document.createElement('canvas');
                         transparentImage.width = 1;
                         transparentImage.height = 1;
                         event.dataTransfer.setDragImage(transparentImage, 0, 0);
-                        setDraggedTile({ tile, x: event.clientX, y: event.clientY });
+                        setDraggedTile({ placement, x: event.clientX, y: event.clientY });
                       }}
                       onDrag={(event) => {
-                        if (canMoveTile && tile) {
-                          setDraggedTile({ tile, x: event.clientX, y: event.clientY });
+                        if (canMoveTile && placement) {
+                          setDraggedTile({ placement, x: event.clientX, y: event.clientY });
                         }
                       }}
                       onDragEnd={() => setDraggedTile(null)}
@@ -131,8 +140,12 @@ function Board({
                         }
                       }}
                     >
-                      {showTile ? (
-                        <Tile tile={tile} variant="board" />
+                      {showTile && placement ? (
+                        <Tile
+                          tile={placement.tile}
+                          variant="board"
+                          displayLetter={placement.assignedLetter}
+                        />
                       ) : (
                         showBonus && <span>{BONUS_LABELS[bonus]}</span>
                       )}
@@ -157,7 +170,11 @@ function Board({
             transform: 'translate(-50%, -50%)',
           }}
         >
-          <Tile tile={draggedTile.tile} variant="board" />
+          <Tile
+            tile={draggedTile.placement.tile}
+            variant="board"
+            displayLetter={draggedTile.placement.assignedLetter}
+          />
         </div>
       )}
     </div>

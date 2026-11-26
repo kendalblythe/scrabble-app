@@ -1,11 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  assignBlankTile,
   createNewGame,
   isGameState,
   movePendingTileOnBoard,
   normalizeGameState,
   placeTileOnBoard,
   reorderRackTile,
+  returnAllPendingTilesToRack,
   returnPendingTileToRack,
   TILE_DISTRIBUTION,
 } from './game';
@@ -68,6 +70,39 @@ describe('placeTileOnBoard', () => {
   });
 });
 
+describe('assignBlankTile', () => {
+  it('assigns a pending blank once while keeping its zero-point tile identity', () => {
+    const game = createNewGame(2);
+    const blank = { id: 'blank-0', letter: 'blank' as const, points: 0 };
+    const replacement = game.players[0].rack[0];
+    if (!replacement) {
+      throw new Error('The test rack is empty.');
+    }
+    const swapTile = (tile: (typeof game.players)[number]['rack'][number]) =>
+      tile.id === blank.id ? replacement : tile.id === replacement.id ? blank : tile;
+    const gameWithBlank = {
+      ...game,
+      players: game.players.map((player) => ({ ...player, rack: player.rack.map(swapTile) })),
+      tileBag: game.tileBag.map(swapTile),
+    };
+
+    const placedGame = placeTileOnBoard(gameWithBlank, blank.id, 7, 7);
+    if (!placedGame) {
+      throw new Error('Could not place the blank test tile.');
+    }
+    const assignedGame = assignBlankTile(placedGame, blank.id, 'A');
+    if (!assignedGame) {
+      throw new Error('Could not assign the blank test tile.');
+    }
+
+    expect(assignedGame?.placedTiles[0]).toMatchObject({
+      tile: { id: blank.id, letter: 'blank', points: 0 },
+      assignedLetter: 'A',
+    });
+    expect(assignBlankTile(assignedGame, blank.id, 'B')).toBeNull();
+  });
+});
+
 describe('movePendingTileOnBoard', () => {
   it('moves a pending tile to an empty square and rejects locked or occupied tiles', () => {
     const game = createNewGame(2);
@@ -118,6 +153,38 @@ describe('returnPendingTileToRack', () => {
     expect(returnedGame?.placedTiles).toEqual([]);
     expect(returnedGame?.pendingTileIds).toEqual([]);
     expect(returnPendingTileToRack(withPendingTile, 'missing-tile', null, false)).toBeNull();
+  });
+});
+
+describe('returnAllPendingTilesToRack', () => {
+  it('returns all current-turn tiles while leaving previous turns on the board', () => {
+    const game = createNewGame(2);
+    const [firstPendingTile, secondPendingTile, ...remainingRack] = game.players[0].rack;
+    const fixedTile = game.tileBag[0];
+    const gameWithFixedTile = {
+      ...game,
+      tileBag: game.tileBag.slice(1),
+      placedTiles: [{ row: 6, column: 6, tile: fixedTile }],
+    };
+    const firstPlacement = placeTileOnBoard(gameWithFixedTile, firstPendingTile.id, 7, 7);
+    if (!firstPlacement) {
+      throw new Error('Could not place the first pending test tile.');
+    }
+    const secondPlacement = placeTileOnBoard(firstPlacement, secondPendingTile.id, 7, 8);
+    if (!secondPlacement) {
+      throw new Error('Could not place the second pending test tile.');
+    }
+
+    const returnedGame = returnAllPendingTilesToRack(secondPlacement);
+
+    expect(returnedGame?.players[0].rack).toEqual([
+      ...remainingRack,
+      firstPendingTile,
+      secondPendingTile,
+    ]);
+    expect(returnedGame?.placedTiles).toEqual([{ row: 6, column: 6, tile: fixedTile }]);
+    expect(returnedGame?.pendingTileIds).toEqual([]);
+    expect(returnAllPendingTilesToRack(game)).toBeNull();
   });
 });
 

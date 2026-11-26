@@ -22,6 +22,7 @@
     "check": "pnpm typecheck && pnpm lint:check && pnpm format:check && pnpm test:all"
   },
   "dependencies": {
+    "nspell": "^2.1.5",
     "react": "19.3.1",
     "react-aria-components": "1.22.1",
     "react-dom": "19.3.1"
