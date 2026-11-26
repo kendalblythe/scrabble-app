@@ -2,7 +2,7 @@
 
 :root {
   font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif;
-  color: #233a30;
+  color: #765050;
   background: #f5f2ea;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -21,4 +21,44 @@ body {
   min-height: 100vh;
   margin: 0;
   background: radial-gradient(ellipse at 50% 40%, rgb(255 255 255 / 62%), transparent 58%), #f5f2ea;
+}
+
+.game-layout {
+  --game-cell-size: max(18px, min(calc((100vw - 44px) / 15), calc((100dvh - 136px) / 16)));
+  --game-board-size: calc(15 * var(--game-cell-size) + 20px);
+}
+
+.setup-layout {
+  --game-cell-size: min(calc((100vw - 44px) / 15), calc((100dvh - 60px) / 15));
+  --game-board-size: calc(15 * var(--game-cell-size) + 20px);
+}
+
+@supports (width: round(down, 1px, 1px)) {
+  .game-layout {
+    --game-cell-size: max(
+      18px,
+      min(
+        round(down, calc((100vw - 44px) / 15), 1px),
+        round(down, calc((100dvh - 136px) / 16), 1px)
+      )
+    );
+  }
+
+  .setup-layout {
+    --game-cell-size: min(
+      round(down, calc((100vw - 44px) / 15), 1px),
+      round(down, calc((100dvh - 60px) / 15), 1px)
+    );
+  }
+}
+
+.game-rack-tile {
+  width: var(--game-cell-size);
+  height: var(--game-cell-size);
+  font-size: min(22px, calc(var(--game-cell-size) / 2));
+  line-height: 1;
+}
+
+.game-rack-tile-points {
+  font-size: min(10px, calc(var(--game-cell-size) / 4));
 }

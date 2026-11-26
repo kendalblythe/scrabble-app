@@ -17,6 +17,7 @@ You can play a game of Scrabble here.
 ## Technologies
 
 - <a href="https://reactjs.org/">React</a>
+- <a href="https://react-aria.adobe.com/components">React Aria Components</a>
 - <a href="https://react.dev/learn/react-compiler">React Compiler</a>
 - <a href="https://www.typescriptlang.org/">TypeScript</a>
 - <a href="https://www.javascript.com/">JavaScript</a>

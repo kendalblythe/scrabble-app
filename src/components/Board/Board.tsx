@@ -10,18 +10,23 @@ const bonusClasses: Record<Bonus, string> = {
 };
 
 const squareLayoutClasses =
-  'grid size-[calc((100cqw_-_14px)/15)] min-h-0 min-w-0 place-self-center place-items-center font-bold tracking-[0.02em]';
+  'grid size-full min-h-0 min-w-0 place-items-center font-bold tracking-[0.02em]';
 
-function Board() {
+type BoardProps = { fitPlayerPanels?: boolean };
+
+function Board({ fitPlayerPanels = false }: BoardProps) {
+  const sizeClass = fitPlayerPanels
+    ? 'w-[var(--game-board-size)] max-h-full max-w-full'
+    : 'w-[var(--game-board-size)]';
+
   return (
-    <div className="aspect-square w-[min(calc(100vw_-_24px),calc(100dvh_-_24px))] border border-[#252525] bg-[#252525] p-0.5 shadow-[0_20px_46px_rgba(47,70,56,0.13),0_3px_8px_rgba(47,70,56,0.09)]">
-      <table
-        className="grid size-full grid-cols-[repeat(15,minmax(0,1fr))] grid-rows-[repeat(15,minmax(0,1fr))] gap-px bg-[#252525] [container-type:inline-size]"
-        aria-label="Scrabble game board"
-      >
-        <tbody className="contents">
+    <div
+      className={`aspect-square ${sizeClass} border border-[#765050] bg-[#252525] p-0.5 shadow-[0_20px_46px_rgba(47,47,47,0.13),0_3px_8px_rgba(47,47,47,0.09)]`}
+    >
+      <table className="block size-full" aria-label="Scrabble game board">
+        <tbody className="grid size-full grid-rows-[repeat(15,minmax(0,1fr))] gap-px bg-[#252525]">
           {BOARD_SQUARES.filter(({ column }) => column === 0).map(({ row }) => (
-            <tr className="contents" key={row}>
+            <tr className="grid min-h-0 grid-cols-[repeat(15,minmax(0,1fr))] gap-px" key={row}>
               {BOARD_SQUARES.slice(row * BOARD_SIZE, (row + 1) * BOARD_SIZE).map(
                 ({ row, column, bonus }) => (
                   <td

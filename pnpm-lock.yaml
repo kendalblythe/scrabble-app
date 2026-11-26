@@ -210,6 +210,9 @@ importers:
       react:
         specifier: 19.3.1
         version: 19.3.1
+      react-aria-components:
+        specifier: 1.22.1
+        version: 1.22.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       react-dom:
         specifier: 19.3.1
         version: 19.3.1(react@19.3.1)
@@ -539,6 +542,24 @@ packages:
       "@noble/hashes":
         optional: true
 
+  "@internationalized/date@3.12.4":
+    resolution:
+      {
+        integrity: sha512-M1dEn4c1U1HsSlaVR8upZtSqvXrTkHDfv18H01uCSJyjVLDxnBR38v/fMxecmlwXKR4i9HeZcmgQAPE6A+aGJQ==,
+      }
+
+  "@internationalized/number@3.6.9":
+    resolution:
+      {
+        integrity: sha512-GgWy2caO/+hV9sT/oCTWGHvbjmJMPT9kkXzoKRLnkEq7adghhR7UprhvY9sXrKfrp3NcDfhF6QQHXR1KfQbB8g==,
+      }
+
+  "@internationalized/string@3.2.10":
+    resolution:
+      {
+        integrity: sha512-PDx6//vHSpRnHfxqMqto11zQvhsaU74O3mKv2F/0eicGZcl9NLjQmGlbHz/LsJh5tLKp4A4L7ZVTzN1/MmMTvA==,
+      }
+
   "@jridgewell/gen-mapping@0.3.13":
     resolution:
       {
@@ -591,6 +612,14 @@ packages:
       {
         integrity: sha512-1Duyg48TdJNdyhEB8Xn1L36bT9Pv6GUtlKjHxOys8xkaF/rQq3XJE+bAurSK/AgIz5mGFsb77cn9Pb20+WCScw==,
       }
+
+  "@react-types/shared@3.37.0":
+    resolution:
+      {
+        integrity: sha512-VNlZuifu4tHdxWPfHvoMfKsHA9kVTCGkduv5vKVTdinm8wHFJNhyVB5RzIMiRFj0q3RKoCbP68u2zaoBSiFueg==,
+      }
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
 
   "@rolldown/binding-android-arm-eabi@1.2.19":
     resolution:
@@ -765,6 +794,12 @@ packages:
     resolution:
       {
         integrity: sha512-glFIJDvLNDtJhT9qrMFWLPbvS+skxgt4L0K8Ei2YtnhPysAJnsI7nyxSJxKj4ADeKX0OLjC4ntRkwpLOoS3rwA==,
+      }
+
+  "@swc/helpers@0.5.24":
+    resolution:
+      {
+        integrity: sha512-6tcXo4kA8HgGO7AVmawB57RYi/piBPYVHVcO6dXjX+SZw8GoHmi262sp4v2Ha2kNP9Cx84qei27yT+fjS1lxgg==,
       }
 
   "@tailwindcss/node@4.3.3":
@@ -1072,6 +1107,13 @@ packages:
       }
     engines: { node: ">=10" }
 
+  aria-hidden@1.2.6:
+    resolution:
+      {
+        integrity: sha512-ik3ZgC9dY/lYVVM++OISsaYDeg1tb0VtP5uL3ouh1koGOaUMDPpbFIei4JkFimWUFPn90sbMNMXQAIVOlnYKJA==,
+      }
+    engines: { node: ">=10" }
+
   aria-query@5.3.0:
     resolution:
       {
@@ -1137,6 +1179,19 @@ packages:
         integrity: sha512-XWAtwJ6OHO+tj0EKCs0Y2UamnyOxseZWltU4x2U2wh8g4AigdjwvtUjvLP2tqkA/avxHEtzxNaqGq/YGNwckKg==,
       }
     engines: { node: ">=18" }
+
+  client-only@0.0.1:
+    resolution:
+      {
+        integrity: sha512-IV3Ou0jSMzZrd3pZ48nLkT9DA7Ag1pnPzaiQhpW7c3RbcqqzvzzVu+L8gfqMp/8IM2MQtSiqaCxrrcfu8I8rMA==,
+      }
+
+  clsx@2.1.1:
+    resolution:
+      {
+        integrity: sha512-eYm0QWBtUrBWZWG0d386OGAw16Z995PiOVo2B7bjWSbHedGl5e0ZWaq65kOGgUSNesEIDkB9ISbTg/JK9dhCZA==,
+      }
+    engines: { node: ">=6" }
 
   convert-source-map@2.0.0:
     resolution:
@@ -1680,6 +1735,24 @@ packages:
       }
     engines: { node: ">=6" }
 
+  react-aria-components@1.22.1:
+    resolution:
+      {
+        integrity: sha512-UTHaYHOaM71bOCjGPF50DcLywlrwAodE63IP64LB4kO+OizatQEL8TesVEOM8+TkBeSgHoflJ45388IlJfa7aw==,
+      }
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
+      react-dom: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
+
+  react-aria@3.53.1:
+    resolution:
+      {
+        integrity: sha512-dikisyOjJd3D2fFrIDWmVWzqiLz5B86GzZv1zxs7xI4dVc0JIz/1Wa52I20gYvVL2WXeFXlygYsle/QcOMhtcg==,
+      }
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
+      react-dom: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
+
   react-dom@19.3.1:
     resolution:
       {
@@ -1693,6 +1766,14 @@ packages:
       {
         integrity: sha512-w2GsyukL62IJnlaff/nRegPQR94C/XXamvMWmSHRJ4y7Ts/4ocGRmTHvOs8PSE6pB3dWOrD/nueuU5sduBsQ4w==,
       }
+
+  react-stately@3.51.0:
+    resolution:
+      {
+        integrity: sha512-YJcmkAXu2XOQP97hO/qz/cC3qv9kni3oVhwBlxWr358BHePJUpY15XwL3YSRMKxYt4EkslPqAz11JRirMfANGw==,
+      }
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
 
   react@19.3.1:
     resolution:
@@ -1832,6 +1913,14 @@ packages:
     hasBin: true
     peerDependencies:
       browserslist: ">= 4.21.0"
+
+  use-sync-external-store@1.7.0:
+    resolution:
+      {
+        integrity: sha512-6L+EeigHMQhdaIPNIFUKwfWJSwWFQ8gJbJ2DLOs5sDIegTwR9fRxvnM3uciHKjIZhFz+KAv2emhWMRvDmMcY8A==,
+      }
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
   verkit@0.5.0:
     resolution:
@@ -2146,6 +2235,18 @@ snapshots:
 
   "@exodus/bytes@1.16.0": {}
 
+  "@internationalized/date@3.12.4":
+    dependencies:
+      "@swc/helpers": 0.5.24
+
+  "@internationalized/number@3.6.9":
+    dependencies:
+      "@swc/helpers": 0.5.24
+
+  "@internationalized/string@3.2.10":
+    dependencies:
+      "@swc/helpers": 0.5.24
+
   "@jridgewell/gen-mapping@0.3.13":
     dependencies:
       "@jridgewell/sourcemap-codec": 1.6.0
@@ -2178,6 +2279,10 @@ snapshots:
     optional: true
 
   "@oxc-project/types@0.156.0": {}
+
+  "@react-types/shared@3.37.0(react@19.3.1)":
+    dependencies:
+      react: 19.3.1
 
   "@rolldown/binding-android-arm-eabi@1.2.19":
     optional: true
@@ -2241,6 +2346,8 @@ snapshots:
       vite: 8.3.5(jiti@2.7.0)
 
   "@rolldown/pluginutils@1.1.1": {}
+
+  "@swc/helpers@0.5.24": {}
 
   "@tailwindcss/node@4.3.3":
     dependencies:
@@ -2402,6 +2509,10 @@ snapshots:
 
   ansi-styles@5.2.0: {}
 
+  aria-hidden@1.2.6:
+    dependencies:
+      tslib: 2.9.1
+
   aria-query@5.3.0:
     dependencies:
       dequal: 2.0.3
@@ -2439,6 +2550,10 @@ snapshots:
   caniuse-lite@1.0.30001828: {}
 
   chai@6.3.0: {}
+
+  client-only@0.0.1: {}
+
+  clsx@2.1.1: {}
 
   convert-source-map@2.0.0: {}
 
@@ -2693,12 +2808,49 @@ snapshots:
 
   punycode@2.3.1: {}
 
+  react-aria-components@1.22.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1):
+    dependencies:
+      "@internationalized/date": 3.12.4
+      "@internationalized/string": 3.2.10
+      "@react-types/shared": 3.37.0(react@19.3.1)
+      "@swc/helpers": 0.5.24
+      client-only: 0.0.1
+      react: 19.3.1
+      react-aria: 3.53.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      react-dom: 19.3.1(react@19.3.1)
+      react-stately: 3.51.0(react@19.3.1)
+      use-sync-external-store: 1.7.0(react@19.3.1)
+
+  react-aria@3.53.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1):
+    dependencies:
+      "@internationalized/date": 3.12.4
+      "@internationalized/number": 3.6.9
+      "@internationalized/string": 3.2.10
+      "@react-types/shared": 3.37.0(react@19.3.1)
+      "@swc/helpers": 0.5.24
+      aria-hidden: 1.2.6
+      clsx: 2.1.1
+      react: 19.3.1
+      react-dom: 19.3.1(react@19.3.1)
+      react-stately: 3.51.0(react@19.3.1)
+      use-sync-external-store: 1.7.0(react@19.3.1)
+
   react-dom@19.3.1(react@19.3.1):
     dependencies:
       react: 19.3.1
       scheduler: 0.28.0
 
   react-is@17.0.2: {}
+
+  react-stately@3.51.0(react@19.3.1):
+    dependencies:
+      "@internationalized/date": 3.12.4
+      "@internationalized/number": 3.6.9
+      "@internationalized/string": 3.2.10
+      "@react-types/shared": 3.37.0(react@19.3.1)
+      "@swc/helpers": 0.5.24
+      react: 19.3.1
+      use-sync-external-store: 1.7.0(react@19.3.1)
 
   react@19.3.1: {}
 
@@ -2763,8 +2915,7 @@ snapshots:
     dependencies:
       punycode: 2.3.1
 
-  tslib@2.9.1:
-    optional: true
+  tslib@2.9.1: {}
 
   typescript@6.0.3: {}
 
@@ -2775,6 +2926,10 @@ snapshots:
       browserslist: 4.29.6
       escalade: 3.2.0
       picocolors: 1.1.1
+
+  use-sync-external-store@1.7.0(react@19.3.1):
+    dependencies:
+      react: 19.3.1
 
   verkit@0.5.0: {}
 
