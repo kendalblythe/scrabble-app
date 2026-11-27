@@ -15,6 +15,7 @@ import {
   BOARD_LETTERS,
   type BoardLetter,
   createNewGame,
+  exchangeRackTiles,
   GAME_STORAGE_KEY,
   type GameState,
   isPlayerCount,
@@ -132,6 +133,20 @@ function App() {
     setSelectedBlankTileId(tileId);
   };
 
+  const handleExchangeTiles = (tileIds: string[]) => {
+    if (!game) {
+      return;
+    }
+
+    const nextGame = exchangeRackTiles(game, tileIds);
+    if (!nextGame) {
+      return;
+    }
+
+    localStorage.setItem(GAME_STORAGE_KEY, JSON.stringify(nextGame));
+    setGame(nextGame);
+  };
+
   const handleSubmitTurn = () => {
     if (!game) {
       return;
@@ -233,6 +248,8 @@ function App() {
             onSubmitTurn={handleSubmitTurn}
             hasPendingTiles={game.pendingTileIds.length > 0}
             onReturnTiles={handleReturnAllTiles}
+            tileBagCount={game.tileBag.length}
+            onExchangeTiles={handleExchangeTiles}
           />
         </>
       ) : (

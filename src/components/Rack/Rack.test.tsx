@@ -37,7 +37,7 @@ describe('Rack component', () => {
     );
 
     const tile = screen.getByRole('listitem', { name: 'A, 1 points' });
-    expect(screen.getByRole('heading', { name: 'P2 rack' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'P2' })).toBeTruthy();
     expect(tile.getAttribute('draggable')).toBe('true');
 
     fireEvent.dragStart(tile, { dataTransfer });
@@ -149,5 +149,84 @@ describe('Rack component', () => {
 
     expect(onTileDrop).toHaveBeenCalledWith('A-0', 7, 7);
     expect(container.querySelector('[data-drag-preview]')).toBeNull();
+  });
+
+  it('selects rack tiles for exchange and supports cancelling or confirming', () => {
+    const onExchangeTiles = vi.fn();
+    render(
+      <Rack
+        playerId={1}
+        tiles={[
+          { id: 'A-0', letter: 'A', points: 1 },
+          { id: 'B-0', letter: 'B', points: 3 },
+        ]}
+        onRackDrop={vi.fn()}
+        tileBagCount={20}
+        onExchangeTiles={onExchangeTiles}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Exchange tiles' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select A tile for exchange' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select B tile for exchange' }));
+
+    expect(
+      screen
+        .getByRole('button', { name: 'Deselect A tile for exchange' })
+        .getAttribute('aria-pressed')
+    ).toBe('true');
+    expect(screen.getByRole('button', { name: 'Exchange 2 tiles' }).hasAttribute('disabled')).toBe(
+      false
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Deselect A tile for exchange' }));
+    expect(
+      screen
+        .getByRole('button', { name: 'Select A tile for exchange' })
+        .getAttribute('aria-pressed')
+    ).toBe('false');
+    expect(screen.getByRole('button', { name: 'Exchange 1 tile' }).hasAttribute('disabled')).toBe(
+      false
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Select A tile for exchange' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(onExchangeTiles).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Exchange tiles' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select A tile for exchange' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Exchange 1 tile' }));
+
+    expect(onExchangeTiles).toHaveBeenCalledWith(['A-0']);
+  });
+
+  it.each([
+    {
+      tileBagCount: 6,
+      hasPendingTiles: false,
+    },
+    {
+      tileBagCount: 20,
+      hasPendingTiles: true,
+    },
+  ])('disables exchange when tiles are unavailable', ({ tileBagCount, hasPendingTiles }) => {
+    render(
+      <Rack
+        playerId={1}
+        tiles={[{ id: 'A-0', letter: 'A', points: 1 }]}
+        onRackDrop={vi.fn()}
+        tileBagCount={tileBagCount}
+        hasPendingTiles={hasPendingTiles}
+        onExchangeTiles={vi.fn()}
+      />
+    );
+
+    expect(screen.getByRole('button', { name: 'Exchange tiles' }).hasAttribute('disabled')).toBe(
+      true
+    );
+    expect(screen.queryByText('Return placed tiles before exchanging.')).toBeNull();
+    if (!hasPendingTiles) {
+      expect(screen.getByText('Exchange requires at least 7 tiles in the bag.')).toBeTruthy();
+    }
   });
 });

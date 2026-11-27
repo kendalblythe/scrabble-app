@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   assignBlankTile,
   createNewGame,
+  exchangeRackTiles,
   isGameState,
   movePendingTileOnBoard,
   normalizeGameState,
@@ -249,5 +250,49 @@ describe('reorderRackTile', () => {
     ]);
     expect(reorderRackTile(game, tileIds[0], tileIds[1], false)).toBeNull();
     expect(reorderRackTile(game, 'missing-tile', null, false)).toBeNull();
+  });
+});
+
+describe('exchangeRackTiles', () => {
+  it('draws replacements before returning selected tiles and advances the turn', () => {
+    const game = createNewGame(2);
+    const currentPlayer = game.players[game.currentPlayerIndex];
+    const selectedTiles = currentPlayer.rack.slice(0, 2);
+    const remainingRack = currentPlayer.rack.slice(2);
+    const drawnTiles = game.tileBag.slice(0, selectedTiles.length);
+    const exchangeResult = exchangeRackTiles(
+      game,
+      selectedTiles.map(({ id }) => id)
+    );
+
+    expect(exchangeResult).not.toBeNull();
+    if (!exchangeResult) {
+      throw new Error('Expected the rack exchange to succeed.');
+    }
+
+    expect(exchangeResult.players[0].rack).toEqual([...remainingRack, ...drawnTiles]);
+    expect(exchangeResult.tileBag).toHaveLength(game.tileBag.length);
+    expect(exchangeResult.tileBag.map(({ id }) => id)).toEqual(
+      expect.arrayContaining(selectedTiles.map(({ id }) => id))
+    );
+    expect(exchangeResult.currentPlayerIndex).toBe(1);
+    expect(game.players[0].rack).toEqual(currentPlayer.rack);
+    expect(game.currentPlayerIndex).toBe(0);
+    expect(isGameState(exchangeResult)).toBe(true);
+  });
+
+  it('rejects empty, duplicate, unavailable, pending, or underfilled exchanges', () => {
+    const game = createNewGame(2);
+    const selectedTileId = game.players[0].rack[0].id;
+
+    expect(exchangeRackTiles(game, [])).toBeNull();
+    expect(exchangeRackTiles(game, [selectedTileId, selectedTileId])).toBeNull();
+    expect(exchangeRackTiles(game, ['missing-tile'])).toBeNull();
+    expect(
+      exchangeRackTiles({ ...game, tileBag: game.tileBag.slice(0, 6) }, [selectedTileId])
+    ).toBeNull();
+    expect(
+      exchangeRackTiles({ ...game, pendingTileIds: [selectedTileId] }, [selectedTileId])
+    ).toBeNull();
   });
 });

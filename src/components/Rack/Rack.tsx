@@ -13,6 +13,8 @@ type RackProps = {
   onSubmitTurn?: () => void;
   hasPendingTiles?: boolean;
   onReturnTiles?: () => void;
+  tileBagCount?: number;
+  onExchangeTiles?: (tileIds: string[]) => void;
 };
 
 function Rack({
@@ -24,14 +26,19 @@ function Rack({
   onSubmitTurn,
   hasPendingTiles,
   onReturnTiles,
+  tileBagCount = 0,
+  onExchangeTiles,
 }: RackProps) {
   const [draggedTile, setDraggedTile] = useState<{
     tile: TileData;
     x: number;
     y: number;
   } | null>(null);
+  const [isSelectingExchange, setIsSelectingExchange] = useState(false);
+  const [selectedExchangeTileIds, setSelectedExchangeTileIds] = useState<string[]>([]);
   const scorePreview = turnScore ?? null;
   const hasValidPlay = scorePreview !== null;
+  const canExchange = tileBagCount >= RACK_SIZE && !hasPendingTiles;
   const pointerDrag = usePointerTileDrag((tileId, target, x) => {
     const boardCell = target.closest<HTMLElement>('[data-board-cell]');
     if (boardCell && onTileDrop) {
@@ -58,6 +65,28 @@ function Rack({
     : undefined;
   const previewTile = pointerDraggedTile ?? draggedTile?.tile;
 
+  const toggleExchangeTile = (tileId: string) => {
+    setSelectedExchangeTileIds((selectedTileIds) =>
+      selectedTileIds.includes(tileId)
+        ? selectedTileIds.filter((selectedTileId) => selectedTileId !== tileId)
+        : [...selectedTileIds, tileId]
+    );
+  };
+
+  const cancelExchange = () => {
+    setIsSelectingExchange(false);
+    setSelectedExchangeTileIds([]);
+  };
+
+  const exchangeSelectedTiles = () => {
+    if (!canExchange || selectedExchangeTileIds.length === 0 || !onExchangeTiles) {
+      return;
+    }
+
+    onExchangeTiles(selectedExchangeTileIds);
+    cancelExchange();
+  };
+
   useEffect(() => {
     const clearDraggedTile = () => setDraggedTile(null);
     window.addEventListener('drop', clearDraggedTile);
@@ -72,12 +101,12 @@ function Rack({
   return (
     <>
       <section
-        aria-label={`P${playerId} rack`}
+        aria-label={`P${playerId}`}
         className="game-rack-panel flex flex-wrap items-center gap-2 max-sm:grid max-sm:grid-cols-[max-content_max-content] max-sm:justify-start sm:justify-center"
       >
-        <h2 className="text-base font-semibold text-[#765050]">P{playerId} rack</h2>
+        <h2 className="text-base font-semibold text-[#765050]">P{playerId}</h2>
         <ul
-          className="grid gap-1 rounded-lg bg-[#765050] p-2"
+          className="grid justify-self-start gap-1 rounded-lg bg-[#765050] p-2"
           data-rack-list
           style={{ gridTemplateColumns: `repeat(${RACK_SIZE}, var(--game-cell-size))` }}
           onDragOver={(event) => event.preventDefault()}
@@ -92,7 +121,7 @@ function Rack({
           {tiles.map((tile) => (
             <li
               aria-label={`${tile.letter === 'blank' ? 'Blank tile' : tile.letter}, ${tile.points} points`}
-              draggable
+              draggable={!isSelectingExchange}
               data-rack-tile
               data-rack-tile-id={tile.id}
               key={tile.id}
@@ -101,11 +130,17 @@ function Rack({
                   draggedTile?.tile.id === tile.id || pointerDraggedTile?.id === tile.id
                     ? 0
                     : undefined,
-                touchAction: 'none',
+                touchAction: isSelectingExchange ? undefined : 'none',
               }}
-              onPointerDown={(event) => pointerDrag.startDrag(tile.id, event)}
+              onPointerDown={(event) => {
+                if (!isSelectingExchange) {
+                  pointerDrag.startDrag(tile.id, event);
+                }
+              }}
               onDrag={(event) => {
-                setDraggedTile({ tile, x: event.clientX, y: event.clientY });
+                if (!isSelectingExchange) {
+                  setDraggedTile({ tile, x: event.clientX, y: event.clientY });
+                }
               }}
               onDragOver={(event) => event.preventDefault()}
               onDragEnd={() => setDraggedTile(null)}
@@ -131,35 +166,91 @@ function Rack({
                 setDraggedTile({ tile, x: event.clientX, y: event.clientY });
               }}
             >
-              <Tile tile={tile} variant="rack" />
+              {isSelectingExchange ? (
+                <Button
+                  aria-label={`${selectedExchangeTileIds.includes(tile.id) ? 'Deselect' : 'Select'} ${tile.letter === 'blank' ? 'blank tile' : `${tile.letter} tile`} for exchange`}
+                  aria-pressed={selectedExchangeTileIds.includes(tile.id)}
+                  className={`grid size-full place-items-center rounded-md p-0 outline-none focus-visible:ring-2 focus-visible:ring-[#765050] ${
+                    selectedExchangeTileIds.includes(tile.id) ? 'ring-2 ring-green-700' : ''
+                  }`}
+                  onPress={() => toggleExchangeTile(tile.id)}
+                >
+                  <Tile tile={tile} variant="rack" />
+                </Button>
+              ) : (
+                <Tile tile={tile} variant="rack" />
+              )}
             </li>
           ))}
         </ul>
-        {(onSubmitTurn || onReturnTiles) && (
-          <div className="flex items-center gap-2 max-sm:col-start-2">
-            {onSubmitTurn && (
-              <Button
-                aria-label={
-                  hasValidPlay
-                    ? `Play word for ${scorePreview} points and end turn`
-                    : 'Play word, valid play required'
-                }
-                className="shrink-0 rounded-lg bg-green-700 px-2 py-2 text-sm font-semibold text-white outline-none transition hover:bg-green-800 focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:border disabled:border-[#765050] disabled:bg-transparent disabled:text-[#765050] disabled:opacity-50 disabled:hover:bg-transparent"
-                isDisabled={!hasValidPlay}
-                onPress={onSubmitTurn}
-              >
-                {hasValidPlay ? `Play (+${scorePreview})` : 'Play'}
-              </Button>
+        {(onSubmitTurn || onReturnTiles || onExchangeTiles) && (
+          <div className="flex flex-col items-start gap-2 max-sm:col-start-2">
+            {isSelectingExchange ? (
+              <>
+                <p aria-live="polite" className="text-sm text-[#665b5b]">
+                  Select tiles to exchange ({selectedExchangeTileIds.length} selected).
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    className="shrink-0 rounded-lg bg-green-700 px-2 py-2 text-sm font-semibold text-white outline-none transition hover:bg-green-800 focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:border disabled:border-[#765050] disabled:bg-transparent disabled:text-[#765050] disabled:opacity-50 disabled:hover:bg-transparent"
+                    isDisabled={selectedExchangeTileIds.length === 0}
+                    onPress={exchangeSelectedTiles}
+                  >
+                    Exchange {selectedExchangeTileIds.length}{' '}
+                    {selectedExchangeTileIds.length === 1 ? 'tile' : 'tiles'}
+                  </Button>
+                  <Button
+                    className="shrink-0 rounded-lg border border-[#765050] px-2 py-2 text-sm font-semibold text-[#765050] outline-none transition hover:bg-[#f2eaea] focus-visible:ring-2 focus-visible:ring-[#765050] focus-visible:ring-offset-2"
+                    onPress={cancelExchange}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-wrap items-center gap-2">
+                {onSubmitTurn && (
+                  <Button
+                    aria-label={
+                      hasValidPlay
+                        ? `Play word for ${scorePreview} points and end turn`
+                        : 'Play word, valid play required'
+                    }
+                    className="shrink-0 rounded-lg bg-green-700 px-2 py-2 text-sm font-semibold text-white outline-none transition hover:bg-green-800 focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:border disabled:border-[#765050] disabled:bg-transparent disabled:text-[#765050] disabled:opacity-50 disabled:hover:bg-transparent"
+                    isDisabled={!hasValidPlay}
+                    onPress={onSubmitTurn}
+                  >
+                    {hasValidPlay ? `Play (+${scorePreview})` : 'Play'}
+                  </Button>
+                )}
+                {onReturnTiles && (
+                  <Button
+                    aria-label="Return all placed tiles to rack"
+                    className="shrink-0 rounded-lg border border-[#765050] px-2 py-2 text-sm font-semibold text-[#765050] outline-none transition hover:bg-[#f2eaea] focus-visible:ring-2 focus-visible:ring-[#765050] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
+                    isDisabled={!hasPendingTiles}
+                    onPress={onReturnTiles}
+                  >
+                    Return tiles
+                  </Button>
+                )}
+                {onExchangeTiles && (
+                  <Button
+                    className="shrink-0 rounded-lg border border-[#765050] px-2 py-2 text-sm font-semibold text-[#765050] outline-none transition hover:bg-[#f2eaea] focus-visible:ring-2 focus-visible:ring-[#765050] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
+                    isDisabled={!canExchange}
+                    onPress={() => {
+                      setSelectedExchangeTileIds([]);
+                      setIsSelectingExchange(true);
+                    }}
+                  >
+                    Exchange tiles
+                  </Button>
+                )}
+              </div>
             )}
-            {onReturnTiles && (
-              <Button
-                aria-label="Return all placed tiles to rack"
-                className="shrink-0 rounded-lg border border-[#765050] px-2 py-2 text-sm font-semibold text-[#765050] outline-none transition hover:bg-[#f2eaea] focus-visible:ring-2 focus-visible:ring-[#765050] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
-                isDisabled={!hasPendingTiles}
-                onPress={onReturnTiles}
-              >
-                Return tiles
-              </Button>
+            {!isSelectingExchange && onExchangeTiles && !canExchange && !hasPendingTiles && (
+              <p className="text-sm text-[#665b5b]">
+                Exchange requires at least {RACK_SIZE} tiles in the bag.
+              </p>
             )}
           </div>
         )}

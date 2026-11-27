@@ -43,7 +43,7 @@ describe('App', () => {
     localStorage.setItem(GAME_STORAGE_KEY, JSON.stringify(gameWithRackLetters(['C', 'A', 'T'])));
     render(<App />);
 
-    const rack = within(screen.getByRole('region', { name: 'P1 rack' })).getByRole('list');
+    const rack = within(screen.getByRole('region', { name: 'P1' })).getByRole('list');
     let draggedTileId = '';
     const dataTransfer = {
       effectAllowed: 'none',
@@ -84,7 +84,7 @@ describe('App', () => {
     expect(playButton.textContent).toBe('Play (+10)');
     fireEvent.click(playButton);
 
-    expect(screen.getByRole('heading', { name: 'P2 rack' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'P2' })).toBeTruthy();
     expect(screen.getByRole('listitem', { name: 'Player 1, 10 points' })).toBeTruthy();
     expect(
       screen.getByRole('listitem', { name: 'Player 2, 0 points, current player' })
@@ -108,7 +108,7 @@ describe('App', () => {
     localStorage.setItem(GAME_STORAGE_KEY, JSON.stringify(gameWithRackLetters(['blank', 'T'])));
     render(<App />);
 
-    const rack = within(screen.getByRole('region', { name: 'P1 rack' })).getByRole('list');
+    const rack = within(screen.getByRole('region', { name: 'P1' })).getByRole('list');
     let draggedTileId = '';
     const dataTransfer = {
       effectAllowed: 'none',
@@ -158,7 +158,7 @@ describe('App', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: 'Start game' }));
 
-    const rack = within(screen.getByRole('region', { name: 'P1 rack' })).getByRole('list');
+    const rack = within(screen.getByRole('region', { name: 'P1' })).getByRole('list');
     const boardCell = screen.getByRole('cell', { name: 'Row 1, column 1, triple word' });
     let draggedTileId = '';
     const dataTransfer = {
@@ -202,7 +202,7 @@ describe('App', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: 'Start game' }));
 
-    const rack = within(screen.getByRole('region', { name: 'P1 rack' })).getByRole('list');
+    const rack = within(screen.getByRole('region', { name: 'P1' })).getByRole('list');
     let draggedTileId = '';
     const dataTransfer = {
       effectAllowed: 'none',
@@ -258,7 +258,7 @@ describe('App', () => {
     localStorage.setItem(GAME_STORAGE_KEY, JSON.stringify(gameWithFixedTile));
     render(<App />);
 
-    const rack = within(screen.getByRole('region', { name: 'P1 rack' })).getByRole('list');
+    const rack = within(screen.getByRole('region', { name: 'P1' })).getByRole('list');
     let draggedTileId = '';
     const dataTransfer = {
       effectAllowed: 'none',
@@ -329,7 +329,7 @@ describe('App', () => {
 
     const player = savedGame.players[savedGame.currentPlayerIndex];
     const originalTileIds = player.rack.map(({ id }) => id);
-    const rack = within(screen.getByRole('region', { name: 'P1 rack' })).getByRole('list');
+    const rack = within(screen.getByRole('region', { name: 'P1' })).getByRole('list');
     const [draggedTile, targetTile] = within(rack).getAllByRole('listitem');
     let draggedTileId = '';
     const dataTransfer = {
@@ -360,6 +360,42 @@ describe('App', () => {
     ]);
   });
 
+  it('exchanges selected tiles, persists the new rack, and advances the turn', () => {
+    const game = gameWithRackLetters(['A', 'T']);
+    const selectedTiles = game.players[0].rack.slice(0, 2);
+    const unselectedTiles = game.players[0].rack.slice(2);
+    const replacementTiles = game.tileBag.slice(0, selectedTiles.length);
+    localStorage.setItem(GAME_STORAGE_KEY, JSON.stringify(game));
+    render(<App />);
+
+    const rack = within(screen.getByRole('region', { name: 'P1' })).getByRole('list');
+    fireEvent.click(screen.getByRole('button', { name: 'Exchange tiles' }));
+    for (const tile of selectedTiles) {
+      const tileButton = rack.querySelector(`[data-rack-tile-id="${tile.id}"] button`);
+      if (!tileButton) {
+        throw new Error(`Could not find the exchange selector for ${tile.id}.`);
+      }
+
+      fireEvent.click(tileButton);
+    }
+
+    fireEvent.click(screen.getByRole('button', { name: 'Exchange 2 tiles' }));
+
+    const savedGame: unknown = JSON.parse(localStorage.getItem(GAME_STORAGE_KEY) ?? 'null');
+    expect(isGameState(savedGame)).toBe(true);
+    if (!isGameState(savedGame)) {
+      throw new Error('Expected the exchanged game to be valid.');
+    }
+
+    expect(savedGame.currentPlayerIndex).toBe(1);
+    expect(savedGame.players[0].rack).toEqual([...unselectedTiles, ...replacementTiles]);
+    expect(savedGame.tileBag).toHaveLength(game.tileBag.length);
+    expect(savedGame.tileBag.map(({ id }) => id)).toEqual(
+      expect.arrayContaining(selectedTiles.map(({ id }) => id))
+    );
+    expect(screen.getByRole('region', { name: 'P2' })).toBeTruthy();
+  });
+
   it('shows the start dialog over the board when no game is saved', () => {
     render(<App />);
 
@@ -388,7 +424,7 @@ describe('App', () => {
     expect(savedGame.tileBag).toHaveLength(72);
     expect(savedGame.currentPlayerIndex).toBe(0);
     expect(screen.getByRole('list', { name: 'Scores' }).children).toHaveLength(4);
-    expect(screen.getByRole('heading', { name: 'P1 rack' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'P1' })).toBeTruthy();
     expect(screen.getByRole('table', { name: 'Scrabble game board' })).toBeTruthy();
 
     unmount();
@@ -396,7 +432,7 @@ describe('App', () => {
 
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(screen.getByRole('list', { name: 'Scores' }).children).toHaveLength(4);
-    expect(screen.getByRole('heading', { name: 'P1 rack' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'P1' })).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'Quit game' }));
 
@@ -437,6 +473,6 @@ describe('App', () => {
     render(<App />);
 
     expect(screen.queryByRole('dialog')).toBeNull();
-    expect(screen.getByRole('heading', { name: 'P1 rack' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'P1' })).toBeTruthy();
   });
 });

@@ -447,3 +447,36 @@ export function reorderRackTile(
     ),
   };
 }
+
+export function exchangeRackTiles(game: GameState, tileIds: string[]): GameState | null {
+  if (tileIds.length === 0 || game.tileBag.length < RACK_SIZE || game.pendingTileIds.length > 0) {
+    return null;
+  }
+
+  const selectedTileIds = new Set(tileIds);
+  if (selectedTileIds.size !== tileIds.length) {
+    return null;
+  }
+
+  const currentPlayer = game.players[game.currentPlayerIndex];
+  const exchangedTiles = currentPlayer.rack.filter(({ id }) => selectedTileIds.has(id));
+  if (exchangedTiles.length !== selectedTileIds.size) {
+    return null;
+  }
+
+  const drawnTiles = game.tileBag.slice(0, selectedTileIds.size);
+  const nextTileBag = shuffleTiles([...game.tileBag.slice(drawnTiles.length), ...exchangedTiles]);
+  const nextRack = [
+    ...currentPlayer.rack.filter(({ id }) => !selectedTileIds.has(id)),
+    ...drawnTiles,
+  ];
+
+  return {
+    ...game,
+    players: game.players.map((player, index) =>
+      index === game.currentPlayerIndex ? { ...player, rack: nextRack } : player
+    ),
+    currentPlayerIndex: (game.currentPlayerIndex + 1) % game.players.length,
+    tileBag: nextTileBag,
+  };
+}
