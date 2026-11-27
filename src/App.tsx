@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   Button,
   Dialog,
@@ -53,19 +53,16 @@ function readCurrentGame(): GameState | null {
 
 function App() {
   const [game, setGame] = useState<GameState | null>(readCurrentGame);
-  const [unassignedBlankTileId, setUnassignedBlankTileId] = useState<string | null>(null);
+  const [selectedBlankTileId, setSelectedBlankTileId] = useState<string | null>(null);
   const [playerCount, setPlayerCount] = useState<PlayerCount>(2);
   const turnResult = game ? evaluatePendingTurn(game) : null;
-
-  useEffect(() => {
-    const unassignedBlank = game?.placedTiles.find(
-      ({ tile, assignedLetter }) =>
-        tile.letter === 'blank' &&
-        assignedLetter === undefined &&
-        game.pendingTileIds.includes(tile.id)
-    );
-    setUnassignedBlankTileId(unassignedBlank?.tile.id ?? null);
-  }, [game]);
+  const unassignedBlankTileId = game?.placedTiles.find(
+    ({ tile, assignedLetter }) =>
+      tile.letter === 'blank' &&
+      assignedLetter === undefined &&
+      game.pendingTileIds.includes(tile.id)
+  )?.tile.id;
+  const blankTilePickerId = selectedBlankTileId ?? unassignedBlankTileId ?? null;
 
   const startGame = () => {
     const currentGame = createNewGame(playerCount);
@@ -106,17 +103,33 @@ function App() {
   };
 
   const handleBlankAssignment = (letter: BoardLetter) => {
-    if (!game || !unassignedBlankTileId) {
+    if (!game || !blankTilePickerId) {
       return;
     }
 
-    const nextGame = assignBlankTile(game, unassignedBlankTileId, letter);
+    const nextGame = assignBlankTile(game, blankTilePickerId, letter);
     if (!nextGame) {
       return;
     }
 
     localStorage.setItem(GAME_STORAGE_KEY, JSON.stringify(nextGame));
+    setSelectedBlankTileId(null);
     setGame(nextGame);
+  };
+
+  const handleBlankTileClick = (tileId: string) => {
+    const placedTile = game?.placedTiles.find(({ tile }) => tile.id === tileId);
+    if (
+      !game ||
+      !placedTile ||
+      placedTile.tile.letter !== 'blank' ||
+      placedTile.assignedLetter === undefined ||
+      !game.pendingTileIds.includes(tileId)
+    ) {
+      return;
+    }
+
+    setSelectedBlankTileId(tileId);
   };
 
   const handleSubmitTurn = () => {
@@ -208,6 +221,7 @@ function App() {
               pendingTileIds={game.pendingTileIds}
               onTileDrop={handleTileDrop}
               onRackDrop={handleRackDrop}
+              onBlankTileClick={handleBlankTileClick}
             />
           </div>
           <Rack
@@ -274,7 +288,7 @@ function App() {
       <ModalOverlay
         className="fixed inset-0 z-20 grid place-items-center bg-black/35 p-3 backdrop-blur-[2px]"
         isDismissable={false}
-        isOpen={unassignedBlankTileId !== null}
+        isOpen={blankTilePickerId !== null}
       >
         <Modal className="w-full max-w-sm">
           <Dialog className="rounded-2xl border border-[#d9d3c4] bg-[#fffefa] p-6 shadow-[0_20px_46px_rgba(47,47,47,0.2)]">
@@ -282,7 +296,7 @@ function App() {
               Choose a letter for the blank
             </Heading>
             <p className="mt-2 text-sm text-[#665b5b]">
-              A blank tile is worth zero points and keeps this letter for the rest of the game.
+              A blank tile is worth zero points. You can change its letter until you play the turn.
             </p>
             <div className="mt-4 grid grid-cols-7 gap-1">
               {BOARD_LETTERS.map((letter) => (

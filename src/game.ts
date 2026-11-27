@@ -314,7 +314,6 @@ export function assignBlankTile(
 
   if (
     placedTile.tile.letter !== 'blank' ||
-    placedTile.assignedLetter !== undefined ||
     !game.pendingTileIds.includes(tileId) ||
     !isBoardLetter(letter)
   ) {

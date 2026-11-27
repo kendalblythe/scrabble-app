@@ -15,8 +15,9 @@
     "test:all": "vitest run",
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
-    "lint:check": "biome lint .",
+    "lint:check": "biome lint . && pnpm lint:react",
     "lint:fix": "biome lint --write .",
+    "lint:react": "eslint src",
     "format:check": "biome format .",
     "format:fix": "biome format --write .",
     "check": "pnpm typecheck && pnpm lint:check && pnpm format:check && pnpm test:all"
@@ -28,6 +29,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.3",
+    "@typescript-eslint/parser": "8.74.0",
     "@rolldown/plugin-babel": "0.2.4",
     "@tailwindcss/vite": "4.3.3",
     "@testing-library/react": "16.3.3",
@@ -36,6 +38,8 @@
     "@vitejs/plugin-react": "6.1.2",
     "@vitest/coverage-v8": "5.0.5",
     "babel-plugin-react-compiler": "1.0.0",
+    "eslint": "10.15.0",
+    "eslint-plugin-react-hooks": "7.1.1",
     "jsdom": "31.0.1",
     "tailwindcss": "4.3.3",
     "typescript": "6.0.3",

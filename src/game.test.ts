@@ -71,7 +71,7 @@ describe('placeTileOnBoard', () => {
 });
 
 describe('assignBlankTile', () => {
-  it('assigns a pending blank once while keeping its zero-point tile identity', () => {
+  it('allows changing a pending blank while keeping its zero-point tile identity', () => {
     const game = createNewGame(2);
     const blank = { id: 'blank-0', letter: 'blank' as const, points: 0 };
     const replacement = game.players[0].rack[0];
@@ -95,11 +95,17 @@ describe('assignBlankTile', () => {
       throw new Error('Could not assign the blank test tile.');
     }
 
-    expect(assignedGame?.placedTiles[0]).toMatchObject({
+    expect(assignedGame.placedTiles[0]).toMatchObject({
       tile: { id: blank.id, letter: 'blank', points: 0 },
       assignedLetter: 'A',
     });
-    expect(assignBlankTile(assignedGame, blank.id, 'B')).toBeNull();
+    const reassignedGame = assignBlankTile(assignedGame, blank.id, 'B');
+
+    expect(reassignedGame?.placedTiles[0]).toMatchObject({
+      tile: { id: blank.id, letter: 'blank', points: 0 },
+      assignedLetter: 'B',
+    });
+    expect(assignBlankTile({ ...assignedGame, pendingTileIds: [] }, blank.id, 'B')).toBeNull();
   });
 });
 

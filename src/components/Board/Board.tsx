@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Button } from 'react-aria-components';
 import type { PlacedTile } from '../../game';
 import usePointerTileDrag from '../../hooks/usePointerTileDrag';
 import Tile from '../Tile/Tile';
@@ -22,6 +23,7 @@ type BoardProps = {
   pendingTileIds?: string[];
   onTileDrop?: (tileId: string, row: number, column: number) => void;
   onRackDrop?: (tileId: string, targetTileId: string | null, insertAfter: boolean) => void;
+  onBlankTileClick?: (tileId: string) => void;
 };
 
 function Board({
@@ -30,6 +32,7 @@ function Board({
   pendingTileIds = [],
   onTileDrop,
   onRackDrop,
+  onBlankTileClick,
 }: BoardProps) {
   const [draggedTile, setDraggedTile] = useState<{
     placement: PlacedTile;
@@ -115,6 +118,11 @@ function Board({
                   const canDrop = onTileDrop !== undefined && tile === undefined;
                   const canMoveTile =
                     placement !== undefined && pendingTileIdsSet.has(placement.tile.id);
+                  const canChangeBlankLetter =
+                    canMoveTile &&
+                    tile?.letter === 'blank' &&
+                    placement?.assignedLetter !== undefined &&
+                    onBlankTileClick !== undefined;
                   const tileName =
                     tile?.letter === 'blank'
                       ? placement?.assignedLetter
@@ -183,11 +191,25 @@ function Board({
                       }}
                     >
                       {showTile && placement ? (
-                        <Tile
-                          tile={placement.tile}
-                          variant="board"
-                          displayLetter={placement.assignedLetter}
-                        />
+                        canChangeBlankLetter ? (
+                          <Button
+                            aria-label={`Change blank letter from ${placement.assignedLetter}`}
+                            className="grid size-full min-h-0 min-w-0 place-items-center border-0 bg-transparent p-0 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#765050]"
+                            onPress={() => onBlankTileClick(placement.tile.id)}
+                          >
+                            <Tile
+                              tile={placement.tile}
+                              variant="board"
+                              displayLetter={placement.assignedLetter}
+                            />
+                          </Button>
+                        ) : (
+                          <Tile
+                            tile={placement.tile}
+                            variant="board"
+                            displayLetter={placement.assignedLetter}
+                          />
+                        )
                       ) : (
                         showBonus && <span>{BONUS_LABELS[bonus]}</span>
                       )}

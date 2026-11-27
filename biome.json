@@ -1,6 +1,6 @@
 {
   "files": {
-    "includes": ["**", "!dist", "!coverage"]
+    "includes": ["**", "!dist", "!coverage", "!pnpm-lock.yaml"]
   },
   "formatter": {
     "enabled": true,

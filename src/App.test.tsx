@@ -126,9 +126,18 @@ describe('App', () => {
 
     expect(screen.getByRole('dialog')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Use blank as A' }));
-    expect(screen.getByRole('cell', { name: /Blank tile assigned as A/ }).textContent).toContain(
-      'A'
+    const assignedBlankCell = screen.getByRole('cell', { name: /Blank tile assigned as A/ });
+    expect(assignedBlankCell.textContent).toContain('A');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Change blank letter from A' }));
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Use blank as B' }));
+
+    expect(screen.getByRole('cell', { name: /Blank tile assigned as B/ }).textContent).toContain(
+      'B'
     );
+    fireEvent.click(screen.getByRole('button', { name: 'Change blank letter from B' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Use blank as A' }));
 
     const tTile = within(rack).getAllByRole('listitem', { name: 'T, 1 points' })[0];
     if (!tTile) {

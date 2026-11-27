@@ -27,6 +27,7 @@ You can play a game of Scrabble here.
 - <a href="https://vercel.com/">Vercel</a>
 - <a href="https://tailwindcss.com/">Tailwind CSS</a>
 - <a href="https://code.visualstudio.com/">Visual Studio Code</a>
+- <a href="https://eslint.org/">ESLint</a>
 - <a href="https://biomejs.dev/">Biome</a>
 - <a href="https://pnpm.io/">pnpm</a>
 

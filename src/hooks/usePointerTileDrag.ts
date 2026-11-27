@@ -14,7 +14,10 @@ function usePointerTileDrag(onDrop: (tileId: string, target: Element, x: number)
   const [drag, setDrag] = useState<PointerDrag | null>(null);
   const dragRef = useRef<PointerDrag | null>(null);
   const onDropRef = useRef(onDrop);
-  onDropRef.current = onDrop;
+
+  useEffect(() => {
+    onDropRef.current = onDrop;
+  }, [onDrop]);
 
   useEffect(() => {
     const handlePointerMove = (event: PointerEvent) => {
