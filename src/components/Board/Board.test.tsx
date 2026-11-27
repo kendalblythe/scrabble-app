@@ -3,7 +3,10 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import Board from './Board';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  Reflect.deleteProperty(document, 'elementFromPoint');
+});
 
 describe('Board component', () => {
   it('renders a 15-by-15 accessible grid', () => {
@@ -103,6 +106,57 @@ describe('Board component', () => {
 
     expect(pendingCell.querySelector('.game-tile-face')).not.toBeNull();
     expect(pendingCell.textContent).toContain('A');
+    expect(container.querySelector('[data-board-drag-preview]')).toBeNull();
+  });
+
+  it('returns a pending board tile to the rack with a touch pointer', () => {
+    const onRackDrop = vi.fn();
+    const tile = { id: 'A-0', letter: 'A' as const, points: 1 };
+    const { container } = render(
+      <Board
+        placedTiles={[{ row: 1, column: 1, tile }]}
+        pendingTileIds={[tile.id]}
+        onRackDrop={onRackDrop}
+      />
+    );
+    const sourceCell = screen.getByRole('cell', {
+      name: 'Row 2, column 2, A tile, 1 point, occupied',
+    });
+    const rackTile = document.createElement('li');
+    rackTile.dataset.rackTile = 'true';
+    rackTile.dataset.rackTileId = 'B-0';
+    vi.spyOn(rackTile, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 20, 20));
+    Object.defineProperty(document, 'elementFromPoint', {
+      configurable: true,
+      value: () => rackTile,
+    });
+
+    fireEvent.pointerDown(sourceCell, {
+      pointerId: 2,
+      pointerType: 'touch',
+      isPrimary: true,
+      clientX: 10,
+      clientY: 10,
+    });
+    fireEvent.pointerMove(window, {
+      pointerId: 2,
+      pointerType: 'touch',
+      clientX: 18,
+      clientY: 10,
+    });
+
+    expect(sourceCell.querySelector('.game-tile-face')).toBeNull();
+    expect(container.querySelector('[data-board-drag-preview]')).not.toBeNull();
+
+    fireEvent.pointerUp(window, {
+      pointerId: 2,
+      pointerType: 'touch',
+      clientX: 18,
+      clientY: 10,
+    });
+
+    expect(sourceCell.style.touchAction).toBe('none');
+    expect(onRackDrop).toHaveBeenCalledWith('A-0', 'B-0', true);
     expect(container.querySelector('[data-board-drag-preview]')).toBeNull();
   });
 });

@@ -13,9 +13,9 @@ import Rack from './components/Rack/Rack';
 import {
   assignBlankTile,
   BOARD_LETTERS,
+  type BoardLetter,
   createNewGame,
   GAME_STORAGE_KEY,
-  type BoardLetter,
   type GameState,
   isPlayerCount,
   movePendingTileOnBoard,
@@ -207,12 +207,14 @@ function App() {
               placedTiles={game.placedTiles}
               pendingTileIds={game.pendingTileIds}
               onTileDrop={handleTileDrop}
+              onRackDrop={handleRackDrop}
             />
           </div>
           <Rack
             playerId={game.players[game.currentPlayerIndex].id}
             tiles={game.players[game.currentPlayerIndex].rack}
             onRackDrop={handleRackDrop}
+            onTileDrop={handleTileDrop}
             turnScore={turnResult?.score ?? null}
             onSubmitTurn={handleSubmitTurn}
             hasPendingTiles={game.pendingTileIds.length > 0}

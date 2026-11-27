@@ -14,10 +14,6 @@ You can play a game of Scrabble here.
 
 - <a href="https://scrabble-react-app.vercel.app/">https://scrabble-react-app.vercel.app/</a>
 
-Word validation uses a vendored, SCOWL-derived American English spelling dictionary, not an official
-Scrabble lexicon. Accepted words can differ from official regional word lists; see the
-[dictionary license](./src/dictionary/LICENSE).
-
 ## Technologies
 
 - <a href="https://reactjs.org/">React</a>

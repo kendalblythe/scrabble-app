@@ -1,8 +1,6 @@
-import enAff from './dictionary/en.aff?raw';
-import enDic from './dictionary/en.dic?raw';
-import nspell from 'nspell';
 import { BOARD_SQUARES } from './components/Board/board';
-import { RACK_SIZE, type BoardLetter, type GameState, type PlacedTile } from './game';
+import wordList from './dictionary/word-list.txt?raw';
+import { type BoardLetter, type GameState, type PlacedTile, RACK_SIZE } from './game';
 
 type Direction = 'horizontal' | 'vertical';
 
@@ -16,9 +14,7 @@ export type TurnResult = {
   score: number;
 };
 
-const dictionary = nspell({ aff: enAff, dic: enDic });
-// SCOWL includes "fr" as an abbreviation.
-const excludedDictionaryWords = new Set(['fr']);
+const dictionary = new Set(wordList.trim().split(/\s+/));
 const premiumSquares = new Map(
   BOARD_SQUARES.filter(({ bonus }) => bonus !== undefined).map(({ row, column, bonus }) => [
     `${row}-${column}`,
@@ -203,7 +199,7 @@ export function evaluatePendingTurn(game: GameState): TurnResult | null {
     }
 
     const word = letters.join('').toLowerCase();
-    if (excludedDictionaryWords.has(word) || !dictionary.correct(word)) {
+    if (!dictionary.has(word)) {
       return null;
     }
 

@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   assignBlankTile,
   createNewGame,
-  placeTileOnBoard,
   type GameState,
+  placeTileOnBoard,
   type TileLetter,
 } from './game';
 import { evaluatePendingTurn, submitTurn } from './scrabbleRules';
@@ -83,6 +83,13 @@ describe('evaluatePendingTurn', () => {
     expect(
       evaluatePendingTurn(placeLetters(gameWithTiles(['Q', 'Z']), ['Q', 'Z'], 7, 7))
     ).toBeNull();
+  });
+
+  it('accepts words from word list that are absent from the previous general dictionary', () => {
+    const game = gameWithTiles(['A', 'A']);
+    const validPlay = placeLetters(game, ['A', 'A'], 7, 7);
+
+    expect(evaluatePendingTurn(validPlay)).toEqual({ words: ['aa'], score: 4 });
   });
 
   it('rejects gaps and disconnected plays', () => {

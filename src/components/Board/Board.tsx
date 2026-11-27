@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { PlacedTile } from '../../game';
+import usePointerTileDrag from '../../hooks/usePointerTileDrag';
 import Tile from '../Tile/Tile';
 import type { Bonus } from './board';
 import { BOARD_SIZE, BOARD_SQUARES, BONUS_LABELS } from './board';
@@ -20,6 +21,7 @@ type BoardProps = {
   placedTiles?: PlacedTile[];
   pendingTileIds?: string[];
   onTileDrop?: (tileId: string, row: number, column: number) => void;
+  onRackDrop?: (tileId: string, targetTileId: string | null, insertAfter: boolean) => void;
 };
 
 function Board({
@@ -27,6 +29,7 @@ function Board({
   placedTiles = [],
   pendingTileIds = [],
   onTileDrop,
+  onRackDrop,
 }: BoardProps) {
   const [draggedTile, setDraggedTile] = useState<{
     placement: PlacedTile;
@@ -40,6 +43,34 @@ function Board({
     placedTiles.map((placement) => [`${placement.row}-${placement.column}`, placement])
   );
   const pendingTileIdsSet = new Set(pendingTileIds);
+  const pointerDrag = usePointerTileDrag((tileId, target, x) => {
+    const boardCell = target.closest<HTMLElement>('[data-board-cell]');
+    if (boardCell && onTileDrop) {
+      onTileDrop(tileId, Number(boardCell.dataset.row), Number(boardCell.dataset.column));
+      return;
+    }
+
+    const targetTile = target.closest<HTMLElement>('[data-rack-tile]');
+    if (targetTile && onRackDrop) {
+      const { left, width } = targetTile.getBoundingClientRect();
+      onRackDrop(tileId, targetTile.dataset.rackTileId ?? null, x > left + width / 2);
+      return;
+    }
+
+    if (target.closest('[data-rack-list]') && onRackDrop) {
+      onRackDrop(tileId, null, false);
+    }
+  });
+  const pointerDraggedPlacement = pointerDrag.drag?.isDragging
+    ? placedTiles.find(({ tile }) => tile.id === pointerDrag.drag?.tileId)
+    : undefined;
+  const dragPreview = pointerDraggedPlacement
+    ? {
+        placement: pointerDraggedPlacement,
+        x: pointerDrag.drag?.x ?? 0,
+        y: pointerDrag.drag?.y ?? 0,
+      }
+    : draggedTile;
 
   useEffect(() => {
     const clearDraggedTile = () => setDraggedTile(null);
@@ -65,7 +96,9 @@ function Board({
                   const placement = placementsBySquare.get(`${row}-${column}`);
                   const tile = placement?.tile;
                   const isDraggedTile =
-                    placement !== undefined && draggedTile?.placement.tile.id === placement.tile.id;
+                    placement !== undefined &&
+                    (draggedTile?.placement.tile.id === placement.tile.id ||
+                      pointerDraggedPlacement?.tile.id === placement.tile.id);
                   const showTile = placement !== undefined && !isDraggedTile;
                   const showBonus = !showTile && bonus !== undefined;
                   const squareClasses = showTile
@@ -99,6 +132,10 @@ function Board({
                       className={`${squareLayoutClasses} ${squareClasses} ${bonusTextSizeClass}`}
                       key={`${row}-${column}`}
                       draggable={canMoveTile}
+                      data-board-cell={canDrop ? 'true' : undefined}
+                      data-row={row}
+                      data-column={column}
+                      style={{ touchAction: canMoveTile ? 'none' : undefined }}
                       aria-label={`Row ${row + 1}, column ${column + 1}${
                         bonus && !tile
                           ? `, ${bonus.replace('-', ' ')}${bonus === 'center' ? ' start' : ''}`
@@ -116,6 +153,11 @@ function Board({
                         transparentImage.height = 1;
                         event.dataTransfer.setDragImage(transparentImage, 0, 0);
                         setDraggedTile({ placement, x: event.clientX, y: event.clientY });
+                      }}
+                      onPointerDown={(event) => {
+                        if (canMoveTile && placement) {
+                          pointerDrag.startDrag(placement.tile.id, event);
+                        }
                       }}
                       onDrag={(event) => {
                         if (canMoveTile && placement) {
@@ -157,23 +199,23 @@ function Board({
           ))}
         </tbody>
       </table>
-      {draggedTile && (
+      {dragPreview && (
         <div
           aria-hidden="true"
           className="pointer-events-none fixed z-50 grid place-items-center"
           data-board-drag-preview
           style={{
-            left: draggedTile.x,
-            top: draggedTile.y,
+            left: dragPreview.x,
+            top: dragPreview.y,
             width: 'var(--game-cell-size)',
             height: 'var(--game-cell-size)',
             transform: 'translate(-50%, -50%)',
           }}
         >
           <Tile
-            tile={draggedTile.placement.tile}
+            tile={dragPreview.placement.tile}
             variant="board"
-            displayLetter={draggedTile.placement.assignedLetter}
+            displayLetter={dragPreview.placement.assignedLetter}
           />
         </div>
       )}

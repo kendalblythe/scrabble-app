@@ -3,7 +3,10 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import Rack from './Rack';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  Reflect.deleteProperty(document, 'elementFromPoint');
+});
 
 describe('Rack component', () => {
   it('reserves space for seven tiles when the rack is partially filled', () => {
@@ -101,5 +104,50 @@ describe('Rack component', () => {
     });
 
     expect(onRackDrop).toHaveBeenCalledWith('A-0', null, false);
+  });
+
+  it('moves a tile to the board with a touch pointer without initiating page scrolling', () => {
+    const onTileDrop = vi.fn();
+    const { container } = render(
+      <Rack
+        playerId={1}
+        tiles={[{ id: 'A-0', letter: 'A', points: 1 }]}
+        onRackDrop={vi.fn()}
+        onTileDrop={onTileDrop}
+      />
+    );
+    const tile = screen.getByRole('listitem', { name: 'A, 1 points' });
+    const boardCell = document.createElement('td');
+    boardCell.dataset.boardCell = 'true';
+    boardCell.dataset.row = '7';
+    boardCell.dataset.column = '7';
+    Object.defineProperty(document, 'elementFromPoint', {
+      configurable: true,
+      value: () => boardCell,
+    });
+
+    expect(tile.style.touchAction).toBe('none');
+    fireEvent.pointerDown(tile, {
+      pointerId: 1,
+      pointerType: 'touch',
+      isPrimary: true,
+      clientX: 10,
+      clientY: 10,
+    });
+    fireEvent.pointerMove(window, {
+      pointerId: 1,
+      pointerType: 'touch',
+      clientX: 20,
+      clientY: 20,
+    });
+    fireEvent.pointerUp(window, {
+      pointerId: 1,
+      pointerType: 'touch',
+      clientX: 20,
+      clientY: 20,
+    });
+
+    expect(onTileDrop).toHaveBeenCalledWith('A-0', 7, 7);
+    expect(container.querySelector('[data-drag-preview]')).toBeNull();
   });
 });

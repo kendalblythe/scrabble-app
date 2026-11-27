@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Button } from 'react-aria-components';
 import { RACK_SIZE, type Tile as TileData } from '../../game';
+import usePointerTileDrag from '../../hooks/usePointerTileDrag';
 import Tile from '../Tile/Tile';
 
 type RackProps = {
   playerId: number;
   tiles: TileData[];
   onRackDrop: (tileId: string, targetTileId: string | null, insertAfter: boolean) => void;
+  onTileDrop?: (tileId: string, row: number, column: number) => void;
   turnScore?: number | null;
   onSubmitTurn?: () => void;
   hasPendingTiles?: boolean;
@@ -17,6 +19,7 @@ function Rack({
   playerId,
   tiles,
   onRackDrop,
+  onTileDrop,
   turnScore,
   onSubmitTurn,
   hasPendingTiles,
@@ -29,6 +32,31 @@ function Rack({
   } | null>(null);
   const scorePreview = turnScore ?? null;
   const hasValidPlay = scorePreview !== null;
+  const pointerDrag = usePointerTileDrag((tileId, target, x) => {
+    const boardCell = target.closest<HTMLElement>('[data-board-cell]');
+    if (boardCell && onTileDrop) {
+      onTileDrop(tileId, Number(boardCell.dataset.row), Number(boardCell.dataset.column));
+      return;
+    }
+
+    const targetTile = target.closest<HTMLElement>('[data-rack-tile]');
+    if (targetTile) {
+      if (targetTile.dataset.rackTileId !== tileId) {
+        const { left, width } = targetTile.getBoundingClientRect();
+        onRackDrop(tileId, targetTile.dataset.rackTileId ?? null, x > left + width / 2);
+      }
+
+      return;
+    }
+
+    if (target.closest('[data-rack-list]')) {
+      onRackDrop(tileId, null, false);
+    }
+  });
+  const pointerDraggedTile = pointerDrag.drag?.isDragging
+    ? tiles.find(({ id }) => id === pointerDrag.drag?.tileId)
+    : undefined;
+  const previewTile = pointerDraggedTile ?? draggedTile?.tile;
 
   useEffect(() => {
     const clearDraggedTile = () => setDraggedTile(null);
@@ -50,6 +78,7 @@ function Rack({
         <h2 className="text-base font-semibold text-[#765050]">P{playerId} rack</h2>
         <ul
           className="grid gap-1 rounded-lg bg-[#765050] p-2"
+          data-rack-list
           style={{ gridTemplateColumns: `repeat(${RACK_SIZE}, var(--game-cell-size))` }}
           onDragOver={(event) => event.preventDefault()}
           onDrop={(event) => {
@@ -64,8 +93,17 @@ function Rack({
             <li
               aria-label={`${tile.letter === 'blank' ? 'Blank tile' : tile.letter}, ${tile.points} points`}
               draggable
+              data-rack-tile
+              data-rack-tile-id={tile.id}
               key={tile.id}
-              style={{ opacity: draggedTile?.tile.id === tile.id ? 0 : undefined }}
+              style={{
+                opacity:
+                  draggedTile?.tile.id === tile.id || pointerDraggedTile?.id === tile.id
+                    ? 0
+                    : undefined,
+                touchAction: 'none',
+              }}
+              onPointerDown={(event) => pointerDrag.startDrag(tile.id, event)}
               onDrag={(event) => {
                 setDraggedTile({ tile, x: event.clientX, y: event.clientY });
               }}
@@ -126,20 +164,20 @@ function Rack({
           </div>
         )}
       </section>
-      {draggedTile && (
+      {previewTile && (
         <div
           aria-hidden="true"
           className="pointer-events-none fixed z-50 grid place-items-center bg-[#e9e3ce]"
           data-drag-preview
           style={{
-            left: draggedTile.x,
-            top: draggedTile.y,
+            left: pointerDraggedTile ? pointerDrag.drag?.x : draggedTile?.x,
+            top: pointerDraggedTile ? pointerDrag.drag?.y : draggedTile?.y,
             width: 'var(--game-cell-size)',
             height: 'var(--game-cell-size)',
             transform: 'translate(-50%, -50%)',
           }}
         >
-          <Tile tile={draggedTile.tile} variant="rack" />
+          <Tile tile={previewTile} variant="rack" />
         </div>
       )}
     </>
